@@ -825,7 +825,21 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
                         const image = (
                           <div className="nh-bento-image">
                             {imageUrl ? (
-                              <img src={imageUrl} alt={art.title} loading="lazy" />
+                              <>
+                                {isSponsoredStory && (
+                                  <div
+                                    aria-hidden="true"
+                                    className="nh-bento-image-backdrop"
+                                    style={{ backgroundImage: `url("${imageUrl}")` }}
+                                  />
+                                )}
+                                <img
+                                  className={isSponsoredStory ? 'nh-bento-image-main' : undefined}
+                                  src={imageUrl}
+                                  alt={art.title}
+                                  loading="lazy"
+                                />
+                              </>
                             ) : (
                               <div
                                 className="nh-bento-image-fallback"
@@ -1147,7 +1161,8 @@ const STYLES = `
   .nh-bento-image { position: relative; aspect-ratio: 16/9; width: 100%; overflow: hidden; border-radius: 8px; background: #090f18; }
   .nh-bento-featured .nh-bento-image { aspect-ratio: 16/8; }
   .nh-bento-image img, .nh-bento-image-fallback { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease, opacity .3s ease; }
-  .nh-bento-sponsored .nh-bento-image img { object-fit: contain; }
+  .nh-bento-image-backdrop { position: absolute; inset: -10px; background-position: center; background-size: cover; filter: blur(16px) brightness(.5); transform: scale(1.08); }
+  .nh-bento-sponsored .nh-bento-image-main { position: relative; z-index: 0; object-fit: contain; }
   .nh-bento-card:hover .nh-bento-image img { transform: scale(1.035); opacity: .88; }
   .nh-card-type { position: absolute; top: 10px; left: 10px; z-index: 1; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; background: rgba(7,11,18,.78); padding: 5px 9px; color: #d7f8fc; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; backdrop-filter: blur(8px); }
   .nh-card-type.pr { background: rgba(6,95,70,.85); color: #d1fae5; }
