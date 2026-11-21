@@ -1009,7 +1009,7 @@ const STYLES = `
   .nh-btn:disabled { opacity: .5; cursor: not-allowed; }
   .nh-btn-pri { background: var(--nh-accent); border-color: var(--nh-accent); color: var(--nh-accent-ink); }
   .nh-btn-pri:hover { background: #67e8f9; }
-  .nh-submit-btn { width: fit-content; padding: 8px 24px; border: 0; border-radius: 0; background: var(--nh-accent); color: var(--nh-accent-ink); font-family: Georgia, Cambria, "Times New Roman", serif; font-size: 15px; font-style: italic; font-weight: 300; box-shadow: 3px 3px 0 #e6edf6; transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
+  .nh-submit-btn { width: fit-content; padding: 8px 24px; border: 0; border-radius: 0; background: var(--nh-accent); color: var(--nh-accent-ink); font-style: italic; font-weight: 300; box-shadow: 3px 3px 0 #e6edf6; transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
   .nh-submit-btn:hover { transform: translate(3px, 3px); box-shadow: none; background: #67e8f9; }
   .nh-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
@@ -1079,7 +1079,7 @@ const STYLES = `
   .nh-slide-image { position: absolute; z-index: 1; left: 50%; top: 50%; width: calc(100% - 80px); max-width: 90%; height: 88%; object-fit: contain; transform: translate(-50%,-50%); }
   .nh-slide-shade { position: absolute; z-index: 2; inset: 0; background: linear-gradient(to top, rgba(2,6,12,.35), rgba(2,6,12,.06) 45%, transparent); }
   .nh-slide-copy { position: relative; z-index: 3; align-self: flex-start; width: fit-content; max-width: min(760px, 88%); color: #fff; }
-  .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(24px, 3vw, 34px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
+  .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(20px, 2.5vw, 30px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
   .nh-slide h2 span { border-radius: 6px; padding: 1px 6px; background: rgba(230,237,246,.7); color: rgba(7,17,29,.86); backdrop-filter: blur(6px); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .nh-tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 4px 9px; border-radius: 99px; background: rgba(255,255,255,.2); backdrop-filter: blur(4px); width: max-content; margin-bottom: 6px; }
   .nh-tag.sp { background: #facc15; color: #422006; font-weight: 800; }
