@@ -49,7 +49,7 @@ interface HubEvent {
   displayed_date?: string;
   source?: string;
   proof?: string;
-  coins?: Array<{ symbol?: string }>;
+  coins?: Array<{ symbol?: string; image?: string }>;
   important?: boolean;
 }
 
@@ -229,6 +229,8 @@ function DiscoveryStory({ article, rank }: { article: Article; rank?: number }) 
 
 function EventStory({ event }: { event: HubEvent }) {
   const title = typeof event.title === 'string' ? event.title : event.title.en || 'Crypto event';
+  const token = event.coins?.find(coin => coin.image);
+  const image = token?.image || event.proof;
   const date = event.displayed_date || (
     event.date_event
       ? new Date(event.date_event).toLocaleDateString('en-US', {
@@ -240,6 +242,16 @@ function EventStory({ event }: { event: HubEvent }) {
   );
   const content = (
     <>
+      {image && (
+        <span className="nh-event-image">
+          <span
+            aria-hidden="true"
+            className="nh-event-image-backdrop"
+            style={{ backgroundImage: `url("${image}")` }}
+          />
+          <img src={image} alt={token?.symbol ? `${token.symbol} token` : ''} loading="lazy" />
+        </span>
+      )}
       <span className="nh-event-date">{date}</span>
       <span className="nh-event-title">{title}</span>
       <span className="nh-event-meta">
@@ -440,15 +452,6 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
             (b.views ?? 0) - (a.views ?? 0) || articleTimestamp(b) - articleTimestamp(a)
         )
         .slice(0, 4);
-  const recommendationTopics = new Set<string>();
-  const recommendedArticles = articles
-    .filter(article => {
-      const topic = articleTopic(article).trim().toLowerCase();
-      if (recommendationTopics.has(topic)) return false;
-      recommendationTopics.add(topic);
-      return true;
-    })
-    .slice(0, 4);
   const topicSections = categories
     .filter(topic => topic.toLowerCase() !== 'all')
     .map(topic => ({
@@ -460,22 +463,9 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
     .slice(0, 3);
   const discoveryInsertIndex = Math.min(3, articles.length - 1);
   const topicInsertIndex = Math.min(7, articles.length - 1);
-  const recommendedModule = (
-    <div className="nh-inline-recommended">
-      <section className="nh-discovery-module" aria-labelledby="nh-recommended-title">
-        <div className="nh-discovery-heading">
-          <div>
-            <span className="nh-kicker">Across the feed</span>
-            <h2 id="nh-recommended-title">Recommended</h2>
-          </div>
-        </div>
-        <div className="nh-discovery-list">
-          {recommendedArticles.map(article => (
-            <DiscoveryStory key={`recommended-${article._id}`} article={article} />
-          ))}
-        </div>
-      </section>
-      {hubEvents.length > 0 && (
+  const eventsModule =
+    hubEvents.length > 0 ? (
+      <div className="nh-inline-events">
         <section className="nh-events-module" aria-labelledby="nh-events-title">
           <div className="nh-discovery-heading">
             <div>
@@ -489,9 +479,8 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
             ))}
           </div>
         </section>
-      )}
-    </div>
-  );
+      </div>
+    ) : null;
 
   const trendingPanel = (
     <section
@@ -1056,7 +1045,7 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
                           </motion.article>
                           {selectedCat === 'All' &&
                             index === discoveryInsertIndex &&
-                            recommendedModule}
+                            eventsModule}
                           {selectedCat === 'All' && index === topicInsertIndex && topicModules}
                           </React.Fragment>
                         );
@@ -1198,7 +1187,7 @@ const STYLES = `
   }
   .nh-slide-backdrop { position: absolute; inset: -20px; background-position: center; background-size: cover; filter: blur(20px) brightness(.42); transform: scale(1.08); }
   .nh-slide-image { position: absolute; z-index: 1; left: 50%; top: 0; width: calc(100% - 80px); max-width: 90%; height: 100%; object-fit: contain; object-position: center top; transform: translateX(-50%); }
-  .nh-slide-shade { position: absolute; z-index: 2; inset: 0; background: linear-gradient(to top, rgba(2,6,12,.35), rgba(2,6,12,.06) 45%, transparent); }
+  .nh-slide-shade { position: absolute; z-index: 2; inset: 45% 0 0; background: linear-gradient(to top, rgba(2,6,12,.35), rgba(2,6,12,.06) 65%, transparent); }
   .nh-slide-copy { position: relative; z-index: 3; align-self: flex-start; width: fit-content; max-width: min(760px, 88%); color: #fff; }
   .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(20px, 2.5vw, 30px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
   .nh-slide h2 span { border-radius: 6px; padding: 1px 6px; background: rgba(230,237,246,.7); color: rgba(7,17,29,.86); backdrop-filter: blur(6px); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
@@ -1227,13 +1216,16 @@ const STYLES = `
   .nh-chip:focus-visible, .nh-btn:focus-visible, .nh-arrow:focus-visible, .nh-dot:focus-visible, .nh-topic-link:focus-visible { outline: 2px solid #67e8f9; outline-offset: 3px; }
 
   /* ─── Article cards ─── */
-  .nh-inline-recommended { grid-column: 1 / -1; margin: 4px 0; border-top: 1px solid var(--nh-border); border-bottom: 1px solid var(--nh-border); padding: 18px 0; }
-  .nh-inline-recommended .nh-discovery-module { border-top: 0; padding-top: 0; }
-  .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .nh-inline-events { grid-column: 1 / -1; margin: 4px 0; border-top: 1px solid var(--nh-border); border-bottom: 1px solid var(--nh-border); padding: 18px 0; }
+  .nh-inline-events .nh-events-module { margin-top: 0; border-top: 0; padding-top: 0; }
+  .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .nh-events-module { margin-top: 20px; border-top: 1px solid var(--nh-border); padding-top: 16px; }
   .nh-events-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .nh-event-card { display: flex; min-width: 0; flex-direction: column; gap: 7px; border: 1px solid var(--nh-border); border-radius: 9px; background: var(--nh-card); padding: 13px; color: inherit; text-decoration: none; transition: border-color .2s, background-color .2s; }
+  .nh-event-card { display: flex; min-width: 0; flex-direction: column; gap: 7px; overflow: hidden; border: 1px solid var(--nh-border); border-radius: 9px; background: var(--nh-card); padding: 10px; color: inherit; text-decoration: none; transition: border-color .2s, background-color .2s; }
   .nh-event-card:hover { border-color: var(--nh-accent); background: #111c2c; }
+  .nh-event-image { position: relative; display: flex; aspect-ratio: 16 / 9; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; background: #090f18; }
+  .nh-event-image-backdrop { position: absolute; inset: -8px; background-position: center; background-size: cover; filter: blur(12px) brightness(.45); transform: scale(1.08); }
+  .nh-event-image img { position: relative; z-index: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
   .nh-event-date { color: var(--nh-accent); font-size: 11px; font-weight: 700; }
   .nh-event-title { display: -webkit-box; overflow: hidden; color: var(--nh-text); font-size: 14px; font-weight: 600; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
   .nh-event-meta { overflow: hidden; color: var(--nh-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
@@ -1291,8 +1283,8 @@ const STYLES = `
   .nh-article-link { color: var(--nh-text); text-decoration: none; }
   .nh-article-link:hover { color: var(--nh-accent); }
   .nh-muted { color: var(--nh-muted); }
-  @media(max-width:860px) { .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-events-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-topic-sections { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media(max-width:620px) { .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list, .nh-topic-sections { grid-template-columns: 1fr; } .nh-events-list { grid-template-columns: 1fr; } .nh-discovery-card, .nh-topic-list .nh-discovery-card { grid-template-columns: 84px minmax(0, 1fr); } .nh-discovery-heading h2 { font-size: 20px; } }
+  @media(max-width:860px) { .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-events-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-topic-sections { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media(max-width:620px) { .nh-feature-trending .nh-discovery-list, .nh-topic-sections { grid-template-columns: 1fr; } .nh-events-list { grid-template-columns: 1fr; } .nh-discovery-card, .nh-topic-list .nh-discovery-card { grid-template-columns: 84px minmax(0, 1fr); } .nh-discovery-heading h2 { font-size: 20px; } }
   @media(max-width:860px) { .nh-feature-grid { grid-template-columns: minmax(0, 1.65fr) minmax(220px, 1fr); } .nh-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-bento-featured, .nh-bento-compact, .nh-bento-standard { grid-column: span 1; } .nh-bento-featured .nh-bento-image { aspect-ratio: 16/9; } }
   @media(max-width:620px) { .nh-wrap { padding: 8px 2px; } .nh-category-bar { align-items: flex-start; } .nh-category-title { font-size: 22px; } .nh-chip { font-size: 13px; } .nh-feature-grid, .nh-feature-grid:not(.has-side) { grid-template-columns: 1fr; } .nh-feature-primary .nh-slider, .nh-lead-story { height: clamp(320px, 82vw, 420px); min-height: 320px; } .nh-feature-secondary { min-height: 0; } .nh-cards { grid-template-columns: 1fr; } .nh-bento-card, .nh-card-skeleton { grid-column: span 1; } .nh-bento-featured .nh-bento-content h3 { font-size: 19px; } }
 
