@@ -8,7 +8,7 @@ import { getNYAXPriceUSD } from '@/utils/nyaxPriceApi';
 import { calculateNewsPrice, NEWS_NYAX_DISCOUNT } from '@/lib/newsPricing';
 import { USDC_NYAX_RECEIVER } from '@/lib/paymentAddresses';
 import { useAppKit } from '@reown/appkit/react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react';
 import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaCheck, FaNewspaper, FaSpinner, FaTimes, FaUpload } from 'react-icons/fa';
@@ -224,6 +224,7 @@ export default function SubmitNewsModalCorporate({
   onSuccess,
 }: SubmitNewsModalProps) {
   const [modalStep, setModalStep] = useState(1);
+  const [drawerClosing, setDrawerClosing] = useState(false);
   const [subType, setSubType] = useState<'news' | 'pr'>(initialType);
   const [plan, setPlan] = useState(initialPlan);
   const [payMethod, setPayMethod] = useState<PayMethod>('paypal');
@@ -272,6 +273,28 @@ export default function SubmitNewsModalCorporate({
 
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const drawerDragControls = useDragControls();
+  const prefersReducedMotion = useReducedMotion();
+
+  const closeDrawer = () => {
+    if (!drawerClosing) setDrawerClosing(true);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDrawerClosing(true);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -913,18 +936,59 @@ export default function SubmitNewsModalCorporate({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-start justify-center p-4 z-50 overflow-y-auto"
-      style={FONT}
+    <motion.div
+      className="fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: drawerClosing ? 0 : 1 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+      onClick={closeDrawer}
+      role="presentation"
     >
-      <div className="bg-gray-800/40 backdrop-blur-lg border border-gray-700/20 rounded-lg w-full max-w-3xl p-6 my-8 text-white shadow-xl relative">
+      <motion.div
+        className="relative h-full w-full max-w-3xl overflow-y-auto border-l border-gray-700/40 bg-gray-900 p-6 text-white shadow-2xl sm:p-8"
+        style={FONT}
+        initial={{ x: '100%' }}
+        animate={{ x: drawerClosing ? '100%' : 0 }}
+        transition={
+          prefersReducedMotion
+            ? { duration: 0 }
+            : { type: 'spring', damping: 32, stiffness: 300 }
+        }
+        drag="x"
+        dragControls={drawerDragControls}
+        dragListener={false}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0, right: 0.5 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.x > 100 || info.velocity.x > 550) closeDrawer();
+        }}
+        onAnimationComplete={() => {
+          if (drawerClosing) onClose();
+        }}
+        onClick={event => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="submit-news-title"
+      >
+        <button
+          type="button"
+          aria-label="Drag right to close the submission drawer"
+          onPointerDown={event => drawerDragControls.start(event)}
+          onClick={closeDrawer}
+          className="absolute left-0 top-1/2 z-20 flex h-20 w-5 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-r bg-gray-800/90 active:cursor-grabbing"
+        >
+          <span aria-hidden="true" className="h-10 w-1 rounded-full bg-gray-500" />
+        </button>
         <div className="flex justify-between items-center mb-4 border-b border-gray-700/20 pb-3">
-          <h3 className="font-semibold text-white flex items-center gap-2 text-lg">
+          <h3
+            id="submit-news-title"
+            className="font-semibold text-white flex items-center gap-2 text-lg"
+          >
             <FaNewspaper className="w-5 h-5 text-blue-400" />
             {subType === 'pr' ? 'Submit Press Release' : 'Submit News Story'}
           </h3>
           <button
-            onClick={onClose}
+            onClick={closeDrawer}
             aria-label="Close"
             className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-700/70 text-gray-400 hover:text-white transition-colors"
           >
@@ -1501,12 +1565,12 @@ export default function SubmitNewsModalCorporate({
               <b>“Pending review”</b>. Our editors verify the payment and accuracy, and you will
               receive an email as soon as it goes live!
             </p>
-            <button onClick={onClose} className={BTN_PRIMARY}>
+            <button onClick={closeDrawer} className={BTN_PRIMARY}>
               Back to News Hub
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
