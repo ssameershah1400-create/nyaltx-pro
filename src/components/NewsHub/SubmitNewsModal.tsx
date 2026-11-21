@@ -11,7 +11,14 @@ import { useAppKit } from '@reown/appkit/react';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react';
 import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
-import { FaCheck, FaNewspaper, FaSpinner, FaTimes, FaUpload } from 'react-icons/fa';
+import {
+  FaCheck,
+  FaChevronDown,
+  FaNewspaper,
+  FaSpinner,
+  FaTimes,
+  FaUpload,
+} from 'react-icons/fa';
 import { erc20Abi, isAddress, parseUnits } from 'viem';
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi';
 
@@ -32,12 +39,13 @@ const FONT = {
   fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
 } as const;
 const INPUT =
-  'w-full px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500/50';
+  'w-full px-3 py-2.5 bg-white border border-[#eeeeee] rounded-none text-gray-900 placeholder:text-gray-500 text-base focus:outline-none focus:border-[#d72924] focus:ring-1 focus:ring-[#d72924]/20 transition-colors';
+const SELECT = `${INPUT} appearance-none pr-10`;
 const LABEL = 'block text-sm font-medium text-gray-300 mb-2';
 const BTN_GHOST =
-  'px-4 py-2 bg-gray-600/50 hover:bg-gray-600/70 text-gray-300 rounded-lg transition-all duration-200 font-medium text-sm';
+  'px-4 py-2 border border-white/30 bg-transparent hover:border-[#d72924] hover:bg-[#d72924] text-gray-200 hover:text-white rounded-none transition-colors font-medium text-sm';
 const BTN_PRIMARY =
-  'px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 font-medium text-sm';
+  'px-4 py-2 bg-[#d72924] hover:bg-[#bd211d] disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-none transition-colors font-semibold text-sm uppercase tracking-wide';
 const PANEL = 'bg-gray-700/30 border border-gray-600/30 rounded-lg';
 
 export interface PlanItem {
@@ -794,10 +802,10 @@ export default function SubmitNewsModalCorporate({
     <button
       type="button"
       onClick={() => setPayMethod(id)}
-      className={`p-2.5 rounded-lg border text-xs font-medium transition-all flex items-center justify-center gap-2 ${
+      className={`p-2.5 rounded-none border text-xs font-medium transition-colors flex items-center justify-center gap-2 ${
         payMethod === id
-          ? `${active} shadow-md`
-          : 'border-gray-600/30 bg-gray-700/30 text-gray-400 hover:bg-gray-700/50'
+          ? active
+          : 'border-[#eeeeee] bg-white text-gray-700 hover:bg-gray-50'
       }`}
     >
       {LOGOS[id]}
@@ -984,13 +992,13 @@ export default function SubmitNewsModalCorporate({
             id="submit-news-title"
             className="font-semibold text-white flex items-center gap-2 text-lg"
           >
-            <FaNewspaper className="w-5 h-5 text-blue-400" />
+            <FaNewspaper className="w-5 h-5 text-[#d72924]" />
             {subType === 'pr' ? 'Submit Press Release' : 'Submit News Story'}
           </h3>
           <button
             onClick={closeDrawer}
             aria-label="Close"
-            className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-700/70 text-gray-400 hover:text-white transition-colors"
+            className="p-2 rounded-none bg-white/10 hover:bg-[#d72924] text-gray-400 hover:text-white transition-colors"
           >
             <FaTimes className="w-4 h-4" />
           </button>
@@ -1004,17 +1012,23 @@ export default function SubmitNewsModalCorporate({
           <div className="space-y-4">
             <div>
               <label className={LABEL}>What are you submitting?</label>
-              <select
-                value={subType}
-                onChange={e => {
-                  setSubType(e.target.value as 'news' | 'pr');
-                  selectPlan('feed');
-                }}
-                className={INPUT}
-              >
-                <option value="news">News Article</option>
-                <option value="pr">Press Release</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={subType}
+                  onChange={e => {
+                    setSubType(e.target.value as 'news' | 'pr');
+                    selectPlan('feed');
+                  }}
+                  className={SELECT}
+                >
+                  <option value="news">News Article</option>
+                  <option value="pr">Press Release</option>
+                </select>
+                <FaChevronDown
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-500"
+                />
+              </div>
             </div>
 
             <div>
@@ -1031,17 +1045,23 @@ export default function SubmitNewsModalCorporate({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={LABEL}>Category</label>
-                <select
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className={INPUT}
-                >
-                  {availableCategories.map(option => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className={SELECT}
+                  >
+                    {availableCategories.map(option => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <FaChevronDown
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className={LABEL}>Source link (optional)</label>
@@ -1068,32 +1088,32 @@ export default function SubmitNewsModalCorporate({
 
             <div>
               <label className={LABEL}>Story Content *</label>
-              <div className="flex gap-1.5 bg-gray-700/50 p-1.5 rounded-t-lg border border-b-0 border-gray-600/50">
+              <div className="flex gap-1.5 bg-white p-1.5 rounded-none border border-b-0 border-[#eeeeee]">
                 <button
                   type="button"
                   onClick={() => execFmt('bold')}
-                  className="px-2 py-0.5 bg-gray-600/50 hover:bg-gray-600/70 rounded text-xs font-bold"
+                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs font-bold text-gray-700"
                 >
                   B
                 </button>
                 <button
                   type="button"
                   onClick={() => execFmt('italic')}
-                  className="px-2 py-0.5 bg-gray-600/50 hover:bg-gray-600/70 rounded text-xs italic"
+                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs italic text-gray-700"
                 >
                   I
                 </button>
                 <button
                   type="button"
                   onClick={() => execFmt('insertUnorderedList')}
-                  className="px-2 py-0.5 bg-gray-600/50 hover:bg-gray-600/70 rounded text-xs"
+                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs text-gray-700"
                 >
                   • List
                 </button>
                 <button
                   type="button"
                   onClick={handleLinkPrompt}
-                  className="px-2 py-0.5 bg-gray-600/50 hover:bg-gray-600/70 rounded text-xs"
+                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs text-gray-700"
                 >
                   Link
                 </button>
@@ -1103,7 +1123,7 @@ export default function SubmitNewsModalCorporate({
                 contentEditable
                 suppressContentEditableWarning
                 onInput={e => setStoryBody(e.currentTarget.innerHTML)}
-                className="w-full bg-gray-700/50 border border-gray-600/50 rounded-b-lg p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[140px] max-h-[220px] overflow-y-auto"
+                className="w-full bg-white border border-[#eeeeee] rounded-none p-3 text-base text-gray-900 focus:outline-none focus:border-[#d72924] min-h-[140px] max-h-[220px] overflow-y-auto"
               />
             </div>
 
@@ -1113,7 +1133,7 @@ export default function SubmitNewsModalCorporate({
 
               <div className={`mb-3 p-4 ${PANEL}`}>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-sm font-medium text-cyan-300">Upload to IPFS</span>
+                  <span className="text-sm font-medium text-red-300">Upload to IPFS</span>
                   <div className="flex-1 h-px bg-gray-600/50"></div>
                 </div>
                 <div className="mb-3 text-xs text-gray-400">
@@ -1132,7 +1152,7 @@ export default function SubmitNewsModalCorporate({
                   />
                   <label
                     htmlFor="submit-ipfs-file-input"
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-600/50 hover:bg-gray-600/70 text-gray-300 rounded-lg cursor-pointer transition-all duration-200 text-sm"
+                    className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 border border-[#eeeeee] text-gray-700 rounded-none cursor-pointer transition-colors text-sm"
                   >
                     <FaUpload className="w-4 h-4" />
                     Choose File
@@ -1148,7 +1168,7 @@ export default function SubmitNewsModalCorporate({
                     type="button"
                     onClick={uploadToIPFS}
                     disabled={!selectedFile || isUploadingToIPFS}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 text-sm font-medium"
+                    className={BTN_PRIMARY}
                   >
                     {isUploadingToIPFS ? (
                       <>
@@ -1399,12 +1419,16 @@ export default function SubmitNewsModalCorporate({
             <div>
               <label className={LABEL}>Select Payment Method</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {payTab('paypal', 'PayPal', 'border-blue-500/40 bg-blue-500/20 text-blue-300')}
-                {payTab('usdc', 'USDC', 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300')}
+                {payTab(
+                  'paypal',
+                  'PayPal',
+                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
+                )}
+                {payTab('usdc', 'USDC', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
                 {payTab(
                   'nyax',
                   plan === 'test' ? 'NYAX' : 'NYAX (20% off)',
-                  'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
                 )}
               </div>
             </div>
