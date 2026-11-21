@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toReliableIpfsUrl } from '@/utils/ipfsUpload';
 import { FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import Banner from '@/components/Banner';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -511,6 +512,7 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
 
       <div className="nh-root">
+        <Banner />
         <div className="nh-wrap">
           {/* ── PAGE HEADER ──────────────────────────────────────────── */}
           <header className="nh-top">
