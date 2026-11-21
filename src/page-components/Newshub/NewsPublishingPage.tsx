@@ -1,7 +1,6 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import PublicHeader from '@/components/PublicHeader';
 import { NEWS_PAYPAL_CRYPTO_DRAFT_KEY } from '@/lib/newsCryptoDraft';
 import { useEffect, useState } from 'react';
@@ -132,44 +131,43 @@ export default function NewsPublishingPage({
             .nps-subhead{max-width:750px;color:#9aabc3}
             .nps-plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:28px}
             .nps-plan-frame{position:relative;display:flex;min-width:0}
-            .nps-plan-corner{position:absolute;z-index:1;width:12px;height:12px;border:0 solid #555;pointer-events:none}
+            .nps-plan-corner{position:absolute;z-index:1;width:12px;height:12px;border:0 solid #67d8ff;pointer-events:none}
             .nps-plan-corner-tl{top:-6px;left:-6px;border-top-width:1.5px;border-left-width:1.5px}
             .nps-plan-corner-tr{top:-6px;right:-6px;border-top-width:1.5px;border-right-width:1.5px}
             .nps-plan-corner-bl{bottom:-6px;left:-6px;border-bottom-width:1.5px;border-left-width:1.5px}
             .nps-plan-corner-br{right:-6px;bottom:-6px;border-right-width:1.5px;border-bottom-width:1.5px}
             .nps-plan{position:relative;display:flex;flex:1;flex-direction:column;gap:18px;border:1px solid #262626;border-radius:0;background:#181818;color:#eee;padding:26px 22px 22px;transition:transform .35s ease,box-shadow .35s,border-color .25s}
             .nps-plan:hover{transform:translateY(-4px);border-color:#464646;box-shadow:0 10px 30px -14px rgba(0,0,0,.8)}
-            .nps-plan-featured{border-color:#efefef;background:#efefef;color:#121212;box-shadow:none}
-            .nps-plan-featured:hover{border-color:#fff;box-shadow:0 10px 30px -14px rgba(0,0,0,.8)}
+            .nps-plan-featured{border-color:rgba(103,216,255,.62);background:linear-gradient(145deg,#102440,#0b172b);color:#eaf2ff;box-shadow:0 12px 36px rgba(103,216,255,.12)}
+            .nps-plan-featured:hover{border-color:#9be7ff;box-shadow:0 14px 38px rgba(0,0,0,.45),0 0 24px rgba(103,216,255,.12)}
             .nps-plan-tag{color:#a0a0a0;font-size:10px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase}
-            .nps-plan-featured .nps-plan-tag{color:#676767}
+            .nps-plan-featured .nps-plan-tag{color:#8bdcff}
             .nps-plan h3{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#f1f1f1;font-size:18px}
-            .nps-plan-featured h3{color:#151515}
+            .nps-plan-featured h3{color:#f4f8ff}
+            .nps-plan-featured .nps-plan-badge{color:#8bdcff}
             .nps-plan-badge{flex:none;border:1px solid currentColor;color:#777;font-size:9px;font-weight:500;letter-spacing:.03em;padding:3px 7px}
             .nps-price{display:flex;align-items:baseline;gap:7px;color:#f1f1f1;font-size:46px;font-weight:500;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
             .nps-price small{color:#929292;font-size:12px;font-weight:400;letter-spacing:0}
-            .nps-plan-featured .nps-price{color:#111}
-            .nps-plan-featured .nps-price small{color:#666}
+            .nps-plan-featured .nps-price{color:#f4f8ff}
+            .nps-plan-featured .nps-price small{color:#91a3bd}
             .nps-discount{color:#83d8ff;font-size:12px;font-weight:700;margin:4px 0 16px}
             .nps-description{min-height:3em;color:#929292;font-size:13px;line-height:1.5}
-            .nps-plan-featured .nps-description{color:#666}
+            .nps-plan-featured .nps-description{color:#aebfd9}
             .nps-plan ul{display:grid;flex:1;gap:10px;border-top:1px dashed #363636;list-style:none;margin:0;padding:16px 0 0}
-            .nps-plan-featured ul{border-top-color:#c8c8c8}
+            .nps-plan-featured ul{border-top-color:rgba(103,216,255,.3)}
             .nps-plan li{display:flex;align-items:flex-start;gap:9px;color:#c9c9c9;font-size:13px;line-height:1.45}
             .nps-plan li:before{flex:none;color:#eee;content:'✓';font-weight:700}
-            .nps-plan-featured li{color:#3f3f3f}
-            .nps-plan-featured li:before{color:#151515}
+            .nps-plan-featured li{color:#d8e6f8}
+            .nps-plan-featured li:before{color:#67d8ff}
             .nps-plan .nps-actions{display:grid;grid-template-columns:minmax(0,1fr);justify-content:stretch;gap:9px;margin-top:auto;padding-top:4px}
             .nps-plan .nps-btn{width:100%;min-height:44px;border-radius:2px;background:#eee;color:#121212!important;box-shadow:none;font-size:13px;font-weight:600}
             .nps-plan .nps-btn:hover{transform:translateY(-1px);background:#fff;box-shadow:none}
-            .nps-plan-featured .nps-btn{background:#121212;color:#f4f4f4!important}
-            .nps-plan-featured .nps-btn:hover{background:#292929}
+            .nps-plan-featured .nps-btn{background:#67d8ff;color:#071326!important;box-shadow:0 8px 24px rgba(103,216,255,.16)}
+            .nps-plan-featured .nps-btn:hover{background:#9be7ff;box-shadow:0 10px 28px rgba(103,216,255,.22)}
             .nps-plan .nps-btn-outline{border:1px solid #444;background:transparent;color:#ccc!important}
             .nps-plan .nps-btn-outline:hover{border-color:#aaa;background:#222}
-            .nps-plan-featured .nps-btn-outline{border-color:#b9b9b9;color:#2d2d2d!important}
-            .nps-plan-featured .nps-btn-outline:hover{border-color:#333;background:#dedede}
-            .nps-footer{border-top:1px solid var(--line);background:#070b12;color:#94a6bf;font-size:12px;padding:28px 0}
-            .nps-footer a{color:#7ccfff;text-decoration:none}
+            .nps-plan-featured .nps-btn-outline{border-color:rgba(171,201,241,.45);color:#eaf2ff!important}
+            .nps-plan-featured .nps-btn-outline:hover{border-color:#67d8ff;background:rgba(23,43,76,.8)}
             @media(max-width:900px){.nps-wrap{padding:0 22px}.nps-hero-grid{padding:24px 22px 64px}}
             @media(max-width:640px){.nps-wrap{padding:0 18px}.nps-hero-grid{padding:20px 18px 48px}.nps-page h1{font-size:clamp(42px,12vw,60px);margin:18px 0}.nps-lead{font-size:15px}.nps-section{padding:52px 0}.nps-plans{grid-template-columns:1fr}.nps-description{min-height:0}.nps-plan{padding:22px}}
             @media(prefers-reduced-motion:reduce){.nps-page *{scroll-behavior:auto!important;transition-duration:.01ms!important}}
@@ -202,9 +200,6 @@ export default function NewsPublishingPage({
               >
                 Submit your news
               </button>
-              <Link className="nps-btn nps-btn-outline" href="/newshub">
-                Browse the News Hub
-              </Link>
             </div>
           </div>
         </div>
@@ -266,11 +261,6 @@ export default function NewsPublishingPage({
         </div>
       </section>
 
-      <footer className="nps-footer">
-        <div className="nps-wrap">
-          NYALTX · New York Alt Exchange &nbsp; | &nbsp; News Hub publishing
-        </div>
-      </footer>
 
       {modalOpen && (
         <SubmitNewsModal

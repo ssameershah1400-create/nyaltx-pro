@@ -10,6 +10,8 @@ import { USDC_NYAX_RECEIVER } from '@/lib/paymentAddresses';
 import { useAppKit } from '@reown/appkit/react';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
+import 'quill/dist/quill.snow.css';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   FaCheck,
@@ -21,6 +23,31 @@ import {
 } from 'react-icons/fa';
 import { erc20Abi, isAddress, parseUnits } from 'viem';
 import { useAccount, useSwitchChain, useWriteContract } from 'wagmi';
+import type { QuillOptions } from 'quill';
+
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
+
+const QUILL_MODULES: NonNullable<QuillOptions['modules']> = {
+  toolbar: [
+    [{ header: [2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote', 'link'],
+    ['clean'],
+  ],
+};
+
+const QUILL_FORMATS = [
+  'header',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'blockquote',
+  'list',
+  'bullet',
+  'link',
+];
 
 export interface SubmitNewsModalProps {
   isOpen: boolean;
@@ -39,7 +66,7 @@ const FONT = {
   fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
 } as const;
 const INPUT =
-  'w-full px-3 py-2.5 bg-white border border-[#eeeeee] rounded-none text-gray-900 placeholder:text-gray-500 text-base focus:outline-none focus:border-[#d72924] focus:ring-1 focus:ring-[#d72924]/20 transition-colors';
+  'w-full px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-none text-white placeholder:text-gray-500 text-sm focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/20 transition-colors';
 const SELECT = `${INPUT} appearance-none pr-10`;
 const LABEL = 'block text-sm font-medium text-gray-300 mb-2';
 const BTN_GHOST =
@@ -279,7 +306,6 @@ export default function SubmitNewsModalCorporate({
   const { writeContractAsync } = useWriteContract();
   const [walletPaying, setWalletPaying] = useState<WalletMethod | null>(null);
 
-  const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const drawerDragControls = useDragControls();
   const prefersReducedMotion = useReducedMotion();
@@ -401,12 +427,6 @@ export default function SubmitNewsModalCorporate({
     setPromoError('');
     setPendingPaypalPaymentId('');
   }, [enableTestPlan, initialPlan, initialType, isOpen]);
-
-  useEffect(() => {
-    if (modalStep === 1 && editorRef.current && editorRef.current.innerHTML !== storyBody) {
-      editorRef.current.innerHTML = storyBody;
-    }
-  }, [modalStep, storyBody]);
 
   useEffect(() => {
     getNYAXPriceUSD()
@@ -552,26 +572,11 @@ export default function SubmitNewsModalCorporate({
     }
   };
 
-  /* ---------- Editor ---------- */
-  const execFmt = (command: string, value: string | undefined = undefined) => {
-    document.execCommand(command, false, value);
-    if (editorRef.current) {
-      setStoryBody(editorRef.current.innerHTML);
-      editorRef.current.focus();
-    }
-  };
-
-  const handleLinkPrompt = () => {
-    const url = prompt('Enter Link URL (https://...):');
-    if (url) execFmt('createLink', url);
-  };
-
   const validateStep1 = () => {
     const titleOk = headline.trim().length >= 8;
     const summaryOk = summary.trim().length >= 10;
-    const bodyContent = editorRef.current
-      ? editorRef.current.textContent?.trim() || ''
-      : storyBody.trim();
+    const bodyContent =
+      new DOMParser().parseFromString(storyBody, 'text/html').body.textContent?.trim() || '';
     const bodyOk = bodyContent.length >= 30;
 
     if (!titleOk || !summaryOk || !bodyOk) {
@@ -596,7 +601,7 @@ export default function SubmitNewsModalCorporate({
       category,
       sourceLink,
       summary,
-      storyBody: editorRef.current?.innerHTML || storyBody,
+      storyBody,
       userEmail,
       uploadedImg,
       promoCode: appliedPromo?.code || null,
@@ -630,7 +635,7 @@ export default function SubmitNewsModalCorporate({
       return;
     }
 
-    const bodyHtml = editorRef.current ? editorRef.current.innerHTML : storyBody;
+    const bodyHtml = storyBody;
     const chosenAmount = paymentOverride?.amount ?? finalPrice;
 
     const submissionPayload = {
@@ -945,7 +950,7 @@ export default function SubmitNewsModalCorporate({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-md"
+      className="fixed inset-0 z-[120] flex justify-end bg-black/75 backdrop-blur-md"
       initial={{ opacity: 0 }}
       animate={{ opacity: drawerClosing ? 0 : 1 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
@@ -1088,42 +1093,14 @@ export default function SubmitNewsModalCorporate({
 
             <div>
               <label className={LABEL}>Story Content *</label>
-              <div className="flex gap-1.5 bg-white p-1.5 rounded-none border border-b-0 border-[#eeeeee]">
-                <button
-                  type="button"
-                  onClick={() => execFmt('bold')}
-                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs font-bold text-gray-700"
-                >
-                  B
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execFmt('italic')}
-                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs italic text-gray-700"
-                >
-                  I
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execFmt('insertUnorderedList')}
-                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs text-gray-700"
-                >
-                  • List
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLinkPrompt}
-                  className="px-2 py-0.5 bg-white hover:bg-gray-100 border border-[#eeeeee] rounded-none text-xs text-gray-700"
-                >
-                  Link
-                </button>
-              </div>
-              <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={e => setStoryBody(e.currentTarget.innerHTML)}
-                className="w-full bg-white border border-[#eeeeee] rounded-none p-3 text-base text-gray-900 focus:outline-none focus:border-[#d72924] min-h-[140px] max-h-[220px] overflow-y-auto"
+              <ReactQuill
+                className="submit-news-quill"
+                theme="snow"
+                value={storyBody}
+                onChange={value => setStoryBody(value)}
+                modules={QUILL_MODULES}
+                formats={QUILL_FORMATS}
+                placeholder="Write the full story here..."
               />
             </div>
 
@@ -1594,6 +1571,69 @@ export default function SubmitNewsModalCorporate({
             </button>
           </div>
         )}
+        <style jsx global>{`
+          .submit-news-quill .ql-toolbar.ql-snow {
+            padding: 4px 8px;
+            border: 1px solid #374151;
+            background: #1f2937;
+          }
+          .submit-news-quill .ql-toolbar.ql-snow .ql-formats {
+            margin-right: 8px;
+          }
+          .submit-news-quill .ql-toolbar.ql-snow button {
+            width: 24px;
+            height: 24px;
+            padding: 3px;
+          }
+          .submit-news-quill .ql-container.ql-snow {
+            border: 1px solid #374151;
+            background: #1f2937;
+            font: inherit;
+          }
+          .submit-news-quill .ql-editor {
+            min-height: 110px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 8px 12px;
+            color: #f9fafb;
+            font-size: 14px;
+            line-height: 1.55;
+          }
+          .submit-news-quill .ql-editor.ql-blank::before {
+            right: 12px;
+            left: 12px;
+            color: #6b7280;
+            font-style: normal;
+          }
+          .submit-news-quill .ql-snow .ql-stroke {
+            stroke: #d1d5db;
+          }
+          .submit-news-quill .ql-snow .ql-fill {
+            fill: #d1d5db;
+          }
+          .submit-news-quill .ql-snow .ql-picker {
+            color: #d1d5db;
+          }
+          .submit-news-quill .ql-snow .ql-picker-options {
+            border-color: #374151;
+            background: #111827;
+          }
+          .submit-news-quill .ql-snow .ql-picker-item {
+            color: #d1d5db;
+          }
+          .submit-news-quill .ql-snow .ql-picker-label:hover,
+          .submit-news-quill .ql-snow button:hover,
+          .submit-news-quill .ql-snow button.ql-active,
+          .submit-news-quill .ql-snow .ql-picker-label.ql-active {
+            color: #67d8ff;
+          }
+          .submit-news-quill .ql-snow .ql-stroke.ql-active {
+            stroke: #67d8ff;
+          }
+          .submit-news-quill .ql-editor a {
+            color: #67d8ff;
+          }
+        `}</style>
       </motion.div>
     </motion.div>
   );
