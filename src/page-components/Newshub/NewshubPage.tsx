@@ -512,7 +512,9 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
 
       <div className="nh-root">
-        <Banner />
+        <div className="pt-6">
+          <Banner />
+        </div>
         <div className="nh-wrap">
           {/* ── PAGE HEADER ──────────────────────────────────────────── */}
           <header className="nh-top">
