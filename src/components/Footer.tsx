@@ -18,6 +18,7 @@ const NEWSLETTER_EXAMPLES = [
 
 const Footer = () => {
   const pathname = usePathname();
+  const hideNewsletterCopy = pathname === '/newshub/submit';
   const { content: footerContent, loading, error } = useFooterContent();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -118,22 +119,25 @@ const Footer = () => {
               {/* Newsletter Signup */}
               <div className="mt-6 w-full max-w-xl space-y-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm sm:p-6">
                 <div>
-                  <p className="mb-2 text-xs font-light uppercase tracking-[0.18em] text-cyan-300">
-                    / Newsletter
-                  </p>
+                  {!hideNewsletterCopy && (
+                    <p className="mb-2 text-xs font-light uppercase tracking-[0.18em] text-cyan-300">
+                      / Newsletter
+                    </p>
+                  )}
                   <hr className="border-white/15" />
                 </div>
                 <p className="max-w-lg text-lg leading-relaxed text-white sm:text-xl">
                   <strong className="font-semibold">
                     {footerContent?.newsletter?.title || "Join Our Community"}
                   </strong>{' '}
-                  <span className="text-gray-300">
-                    {footerContent?.newsletter?.description || "Get exclusive crypto insights, market updates, and early access to new features."}
-                  </span>
+                  {!hideNewsletterCopy && (
+                    <span className="text-gray-300">
+                      {footerContent?.newsletter?.description ||
+                        'Get exclusive crypto insights, market updates, and early access to new features.'}
+                    </span>
+                  )}
                 </p>
-                <NewsletterPrompt
-                  examples={NEWSLETTER_EXAMPLES}
-                />
+                {!hideNewsletterCopy && <NewsletterPrompt examples={NEWSLETTER_EXAMPLES} />}
                 <form onSubmit={handleNewsletterSignup} className="space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <input
