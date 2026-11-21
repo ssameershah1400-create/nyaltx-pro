@@ -142,7 +142,7 @@ function AdminCorporateNewsComponent() {
   const [loading, setLoading] = useState(true);
   const [hasLoadedNews, setHasLoadedNews] = useState(false);
   const [categories, setCategories] = useState<string[]>([...PAID_NEWS_CATEGORIES]);
-  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(true);
   const [categoryDraft, setCategoryDraft] = useState('');
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categorySaving, setCategorySaving] = useState(false);
@@ -739,7 +739,7 @@ function AdminCorporateNewsComponent() {
             aria-expanded={showCategoryManager}
           >
             <Tags className="h-4 w-4" aria-hidden="true" />
-            Manage Categories
+            {showCategoryManager ? 'Hide News Hub Filters' : 'Manage News Hub Filters'}
           </Button>
           <Button variant="outline" onClick={loadNews} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
