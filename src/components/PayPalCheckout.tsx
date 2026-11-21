@@ -8,6 +8,7 @@ interface PayPalCheckoutProps {
   amount: string;
   tier: string;
   email?: string;
+  cardOnly?: boolean;
   onBeforeCryptoRedirect?: () => void;
   onSuccess?: (details: any) => void | Promise<void>;
   onError?: (error: any) => void;
@@ -17,6 +18,7 @@ export default function PayPalCheckout({
   amount,
   tier,
   email,
+  cardOnly = false,
   onBeforeCryptoRedirect,
   onSuccess,
   onError,
@@ -423,10 +425,10 @@ export default function PayPalCheckout({
         </div>
         <div>
           <div className="text-white font-semibold" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-            PayPal Payment
+            {cardOnly ? 'Credit/Debit Card' : 'PayPal Payment'}
           </div>
           <div className="text-sm text-gray-400" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-            Secure payment with PayPal
+            {cardOnly ? 'Secure card payment processed by PayPal' : 'Secure payment with PayPal'}
           </div>
         </div>
       </div>
@@ -435,10 +437,11 @@ export default function PayPalCheckout({
         <PayPalButtons
           style={{
             layout: 'vertical',
-            color: 'gold',
+            color: cardOnly ? 'black' : 'gold',
             shape: 'rect',
-            label: 'paypal',
+            label: cardOnly ? 'pay' : 'paypal',
           }}
+          fundingSource={cardOnly ? 'card' : undefined}
           createOrder={async (_, actions) => {
             setProcessing(true);
             const orderToast = toast.loading('💳 Creating PayPal order...');
@@ -518,59 +521,61 @@ export default function PayPalCheckout({
           disabled={processing}
         />
 
-        <div className="mt-4 border-t border-gray-700/50 pt-4">
-          <button
-            type="button"
-            onClick={() => setCryptoCheckoutOpen(open => !open)}
-            disabled={cryptoProcessing}
-            className="w-full rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {cryptoCheckoutOpen ? 'Close PayPal crypto option' : 'Pay with crypto using PayPal'}
-          </button>
+        {!cardOnly && (
+          <div className="mt-4 border-t border-gray-700/50 pt-4">
+            <button
+              type="button"
+              onClick={() => setCryptoCheckoutOpen(open => !open)}
+              disabled={cryptoProcessing}
+              className="w-full rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {cryptoCheckoutOpen ? 'Close PayPal crypto option' : 'Pay with crypto using PayPal'}
+            </button>
 
-          {cryptoCheckoutOpen && (
-            <div className="mt-3 space-y-3 rounded-lg border border-cyan-500/30 bg-gray-900/50 p-4">
-              <p className="text-sm font-medium text-white">Pay with crypto through PayPal</p>
-              <p className="text-xs leading-relaxed text-gray-300">
-                Eligible buyers worldwide can pay with supported cryptocurrencies. PayPal converts
-                the payment to your account&apos;s settlement currency. This feature requires an
-                eligible, verified US PayPal Business account with Pay with crypto enabled.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs text-gray-300">
-                  First name
-                  <input
-                    autoComplete="given-name"
-                    maxLength={140}
-                    value={cryptoGivenName}
-                    onChange={event => setCryptoGivenName(event.target.value)}
-                    className="mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white"
-                  />
-                </label>
-                <label className="text-xs text-gray-300">
-                  Last name
-                  <input
-                    autoComplete="family-name"
-                    maxLength={140}
-                    value={cryptoSurname}
-                    onChange={event => setCryptoSurname(event.target.value)}
-                    className="mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white"
-                  />
-                </label>
+            {cryptoCheckoutOpen && (
+              <div className="mt-3 space-y-3 rounded-lg border border-cyan-500/30 bg-gray-900/50 p-4">
+                <p className="text-sm font-medium text-white">Pay with crypto through PayPal</p>
+                <p className="text-xs leading-relaxed text-gray-300">
+                  Eligible buyers worldwide can pay with supported cryptocurrencies. PayPal converts
+                  the payment to your account&apos;s settlement currency. This feature requires an
+                  eligible, verified US PayPal Business account with Pay with crypto enabled.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-xs text-gray-300">
+                    First name
+                    <input
+                      autoComplete="given-name"
+                      maxLength={140}
+                      value={cryptoGivenName}
+                      onChange={event => setCryptoGivenName(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white"
+                    />
+                  </label>
+                  <label className="text-xs text-gray-300">
+                    Last name
+                    <input
+                      autoComplete="family-name"
+                      maxLength={140}
+                      value={cryptoSurname}
+                      onChange={event => setCryptoSurname(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white"
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void startCryptoCheckout()}
+                  disabled={cryptoProcessing}
+                  className="w-full rounded-lg bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {cryptoProcessing
+                    ? 'Connecting to PayPal...'
+                    : `Continue with PayPal crypto · $${Number(amount).toFixed(2)} USD`}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => void startCryptoCheckout()}
-                disabled={cryptoProcessing}
-                className="w-full rounded-lg bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {cryptoProcessing
-                  ? 'Connecting to PayPal...'
-                  : `Continue with PayPal crypto · $${Number(amount).toFixed(2)} USD`}
-              </button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {processing && (
           <div className="mt-4 flex items-center justify-center gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
