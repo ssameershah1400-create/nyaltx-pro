@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   FaCheck,
   FaChevronDown,
+  FaCreditCard,
   FaNewspaper,
   FaSpinner,
   FaTimes,
@@ -58,8 +59,8 @@ export interface SubmitNewsModalProps {
   onSuccess?: (item: any) => void;
 }
 
-type PayMethod = 'paypal' | 'usdc' | 'nyax';
-type WalletMethod = Exclude<PayMethod, 'paypal'>;
+type PayMethod = 'paypal' | 'card' | 'usdc' | 'nyax';
+type WalletMethod = Exclude<PayMethod, 'paypal' | 'card'>;
 
 /* ---------- Corporate News (admin) theme tokens ---------- */
 const FONT = {
@@ -165,6 +166,7 @@ const PayPalIcon = () => (
 
 const LOGOS: Record<PayMethod, React.ReactNode> = {
   paypal: <PayPalIcon />,
+  card: <FaCreditCard aria-hidden="true" />,
   usdc: <Image src="/crypto-icons/color/usdc.svg" width={16} height={16} alt="USDC" />,
   nyax: <Image src="/logo.png" width={16} height={16} alt="NYAX" />,
 };
@@ -628,7 +630,8 @@ export default function SubmitNewsModalCorporate({
       return;
     }
 
-    const currentPayMethod = paymentOverride?.paymentMethod || payMethod;
+    const selectedPayMethod = paymentOverride?.paymentMethod || payMethod;
+    const currentPayMethod = selectedPayMethod === 'card' ? 'paypal' : selectedPayMethod;
     if (currentPayMethod !== 'paypal' && !paymentOverride?.txHash && !cryptoTxHash.trim()) {
       setFormError('Please enter the transaction hash / signature after sending your payment.');
       setIsSubmitting(false);
@@ -1395,10 +1398,15 @@ export default function SubmitNewsModalCorporate({
 
             <div>
               <label className={LABEL}>Select Payment Method</label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {payTab(
                   'paypal',
                   'PayPal',
+                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
+                )}
+                {payTab(
+                  'card',
+                  'Credit/Debit Card',
                   'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
                 )}
                 {payTab('usdc', 'USDC', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
@@ -1431,16 +1439,20 @@ export default function SubmitNewsModalCorporate({
             </div>
 
             {/* PayPal */}
-            {payMethod === 'paypal' && (
+            {(payMethod === 'paypal' || payMethod === 'card') && (
               <div className="p-4 bg-gray-700/30 border border-blue-500/30 rounded-lg space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/30 text-blue-300">
                     <PayPalIcon />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-blue-400">PayPal & Card Payment</h4>
+                    <h4 className="text-sm font-semibold text-blue-400">
+                      {payMethod === 'card' ? 'Credit/Debit Card' : 'PayPal Payment'}
+                    </h4>
                     <p className="text-xs text-gray-400">
-                      Complete payment securely with PayPal or Credit/Debit Card
+                      {payMethod === 'card'
+                        ? 'Pay securely by credit or debit card through PayPal.'
+                        : 'Complete payment securely with PayPal.'}
                     </p>
                   </div>
                 </div>
@@ -1476,6 +1488,7 @@ export default function SubmitNewsModalCorporate({
                       amount={finalPrice.toFixed(2)}
                       tier={`${subType}_${plan}`}
                       email={userEmail.trim()}
+                      cardOnly={payMethod === 'card'}
                       onBeforeCryptoRedirect={() => saveNewsCryptoDraft()}
                       onSuccess={(details: any) => {
                         const isCryptoPayment =
@@ -1542,7 +1555,7 @@ export default function SubmitNewsModalCorporate({
               <button type="button" onClick={() => setModalStep(2)} className={BTN_GHOST}>
                 ← Back
               </button>
-              {payMethod !== 'paypal' && (
+              {payMethod !== 'paypal' && payMethod !== 'card' && (
                 <button
                   type="button"
                   onClick={() => handlePayAndSubmit()}
