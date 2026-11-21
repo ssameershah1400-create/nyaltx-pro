@@ -131,121 +131,153 @@ export default function NewsPublishingPage({
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .nps-page{--navy:#e6edf6;--blue:#00b8d8;--green:#00b8d8;--ink:#e6edf6;--muted:#8a99ad;--line:rgba(255,255,255,.1);background:#070b12;color:var(--ink);font:16px/1.6 Arial,sans-serif;min-height:100vh}
+            .nps-page{--ink:#eaf2ff;--muted:#91a3bd;--line:rgba(148,174,211,.16);--cyan:#67d8ff;min-height:100vh;background:#070b12;color:var(--ink);font:16px/1.6 Arial,sans-serif}
             .nps-page *{box-sizing:border-box}
-            .nps-wrap{max-width:1180px;margin:0 auto;padding:0 28px}
-            .nps-nav{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;padding:22px 0}
-            .nps-brand{color:#f8fafc;font-size:25px;font-weight:800;letter-spacing:-1px;text-decoration:none}
-            .nps-brand span{color:#00b8d8}
-            .nps-brand small{display:block;color:#8a99ad;font-size:10px;letter-spacing:2px}
-            .nps-links{display:flex;align-items:center;gap:25px;flex-wrap:wrap;font-size:14px;font-weight:700}
-            .nps-links a{color:#00b8d8;text-decoration:none}
-            .nps-btn{display:inline-flex;justify-content:center;align-items:center;border:1px solid transparent;border-radius:8px;background:#00b8d8;color:#fff!important;cursor:pointer;font:inherit;font-weight:700;padding:12px 20px;text-align:center;text-decoration:none;transition:filter .2s,transform .2s}
-            .nps-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
-            .nps-btn-outline{background:rgba(15,22,35,.75);border-color:#334155;color:#e6edf6!important}
-            .nps-btn-outline:hover{background:#172235}
-            .nps-btn-small{font-size:13px;padding:10px 14px}
-            .nps-hero{background:linear-gradient(115deg,rgba(15,22,35,.88),rgba(7,11,18,.64) 75%);border-block:1px solid #1e293b;padding:66px 0}
-            .nps-hero-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:60px;align-items:center}
-            .nps-eyebrow{color:#22d3ee;font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+            .nps-wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+            .nps-hero{position:relative;isolation:isolate;overflow:hidden;width:min(1440px,calc(100% - 40px));margin:20px auto 0;border:1px solid rgba(132,177,235,.2);border-radius:28px;background:radial-gradient(ellipse at 70% 88%,rgba(38,113,224,.25),transparent 42%),radial-gradient(ellipse at 88% 12%,rgba(30,119,190,.15),transparent 35%),linear-gradient(145deg,#07152f 0%,#040c22 52%,#080f24 100%);box-shadow:0 28px 90px rgba(0,0,0,.3)}
+            .nps-hero:before{position:absolute;z-index:0;inset:0;pointer-events:none;content:'';opacity:.34;background-image:radial-gradient(circle,rgba(118,176,255,.72) 1px,transparent 1.4px);background-size:22px 22px;mask-image:radial-gradient(ellipse at 68% 48%,#000 0%,transparent 72%)}
+            .nps-hero:after{position:absolute;z-index:0;right:-12%;bottom:4%;width:65%;height:45%;pointer-events:none;content:'';background:radial-gradient(ellipse,rgba(65,151,255,.2),transparent 70%);filter:blur(18px)}
+            .nps-hero>*{position:relative;z-index:1}
+            .nps-nav{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;padding:22px 0;border-bottom:1px solid rgba(164,194,236,.14)}
+            .nps-brand{color:#f5f8ff;font-size:23px;font-weight:750;letter-spacing:-1px;text-decoration:none}
+            .nps-brand span{color:#7ac8ff}
+            .nps-brand small{display:block;color:#8599b8;font-size:9px;letter-spacing:2px}
+            .nps-links{display:flex;align-items:center;gap:22px;flex-wrap:wrap;font-size:13px;font-weight:600}
+            .nps-links a{color:#afc2df;text-decoration:none;transition:color .2s ease}
+            .nps-links a:hover{color:#fff}
+            .nps-btn{position:relative;display:inline-flex;justify-content:center;align-items:center;min-height:44px;border:1px solid transparent;border-radius:999px;background:linear-gradient(180deg,#fff,#dceaff);color:#071326!important;cursor:pointer;font:inherit;font-size:14px;font-weight:700;padding:11px 21px;text-align:center;text-decoration:none;box-shadow:inset 0 1px 0 #fff,0 8px 24px rgba(99,166,255,.15);transition:transform .2s ease,filter .2s ease,box-shadow .2s ease}
+            .nps-btn:hover{filter:brightness(1.04);transform:translateY(-2px);box-shadow:inset 0 1px 0 #fff,0 12px 28px rgba(99,166,255,.23)}
+            .nps-btn:focus-visible,.nps-links a:focus-visible,.nps-inquiry-close:focus-visible{outline:2px solid #7cc4ff;outline-offset:3px}
+            .nps-btn:disabled{cursor:wait;opacity:.65}
+            .nps-btn-outline{background:rgba(7,18,40,.55);border-color:rgba(171,201,241,.28);color:#eaf2ff!important;box-shadow:none}
+            .nps-btn-outline:hover{background:rgba(23,43,76,.8);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+            .nps-btn-small{min-height:38px;font-size:13px;padding:8px 16px}
+            .nps-hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.78fr);gap:clamp(36px,6vw,84px);align-items:center;padding:clamp(54px,8vw,96px) 32px clamp(42px,6vw,68px)}
+            .nps-eyebrow{display:flex;align-items:center;gap:10px;color:#8bdcff;font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase}
+            .nps-live-dot{width:7px;height:7px;flex:none;border-radius:50%;background:#79e0ff;box-shadow:0 0 14px rgba(93,201,255,.9)}
             .nps-page h1,.nps-page h2,.nps-page h3,.nps-page p{margin:0}
-            .nps-page h1{background:linear-gradient(90deg,#00b8d8,#a5f3fc);background-clip:text;color:transparent;font-size:clamp(36px,5vw,62px);letter-spacing:-2.5px;line-height:1.07;margin:16px 0 20px}
-            .nps-page h2{color:#f8fafc;font-size:34px;letter-spacing:-1px;line-height:1.2;margin:8px 0 12px}
-            .nps-page h3{color:#f1f5f9;font-size:23px;line-height:1.2}
-            .nps-lead{color:#b6c2d2;font-size:19px;max-width:650px}
+            .nps-page h1{max-width:780px;color:#f4f8ff;font-size:clamp(44px,6.6vw,82px);font-weight:500;letter-spacing:-.065em;line-height:.98;margin:21px 0 22px}
+            .nps-page h1 em{color:#9bcaff;font-family:Georgia,Cambria,"Times New Roman",serif;font-size:1.02em;font-weight:400;font-style:italic;letter-spacing:-.055em}
+            .nps-page h2{color:#f4f8ff;font-size:clamp(28px,3vw,36px);font-weight:550;letter-spacing:-1.2px;line-height:1.15;margin:7px 0 12px}
+            .nps-page h3{color:#edf4ff;font-size:21px;font-weight:600;letter-spacing:-.35px;line-height:1.2}
+            .nps-lead{max-width:650px;color:#aebfd9;font-size:17px;line-height:1.75}
             .nps-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
-            .nps-hero-card{background:linear-gradient(145deg,rgba(15,22,35,.96),rgba(10,17,29,.92));border:1px solid #263449;border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.25);padding:28px}
-            .nps-hero-card p{border-bottom:1px solid #1e293b;padding:14px 0}
-            .nps-hero-card p:last-child{border:0}
-            .nps-check{color:#22d3ee;font-weight:700;margin-right:8px}
-            .nps-section{padding:62px 0}
+            .nps-hero-card{position:relative;overflow:hidden;border:1px solid rgba(126,176,238,.25);border-radius:20px;background:linear-gradient(145deg,rgba(11,28,58,.84),rgba(5,14,34,.76));box-shadow:0 24px 65px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.05);padding:23px 25px;backdrop-filter:blur(16px)}
+            .nps-hero-card:before{position:absolute;top:0;left:24px;width:86px;height:1px;content:'';background:linear-gradient(90deg,transparent,#80caff,transparent)}
+            .nps-hero-card-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+            .nps-card-kicker{margin-top:5px;color:#768dab;font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1.4px}
+            .nps-live{flex:none;border:1px solid rgba(97,216,255,.22);border-radius:999px;background:rgba(33,147,196,.1);color:#91e4ff;font-size:9px;font-weight:700;letter-spacing:1px;padding:6px 9px}
+            .nps-hero-card p{display:flex;align-items:center;gap:13px;border-top:1px solid rgba(156,187,230,.12);padding:15px 0}
+            .nps-check{display:grid;width:30px;height:30px;flex:none;place-items:center;border:1px solid rgba(105,193,255,.28);border-radius:50%;background:rgba(39,118,201,.12);color:#8edbff;font:11px ui-monospace,SFMono-Regular,Menlo,monospace}
+            .nps-flow-copy{display:grid;gap:3px}
+            .nps-flow-copy strong{color:#e7f1ff;font-size:13px;font-weight:600}
+            .nps-flow-copy small{color:#8297b6;font-size:11px;line-height:1.4}
+            .nps-hero-shelf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;max-width:none;padding:0 32px;background:linear-gradient(180deg,#edf5ff,#dceaff);color:#0a1830}
+            .nps-shelf-item{display:flex;align-items:center;gap:14px;min-width:0;padding:19px 24px;border-right:1px solid rgba(20,54,99,.13)}
+            .nps-shelf-item:last-child{border-right:0}
+            .nps-shelf-index{color:#4d83bb;font:11px ui-monospace,SFMono-Regular,Menlo,monospace}
+            .nps-shelf-item>span:nth-child(2){display:grid;gap:2px;min-width:0}
+            .nps-shelf-item strong{font-size:13px;font-weight:700}
+            .nps-shelf-item small{color:#536984;font-size:11px}
+            .nps-shelf-item b{margin-left:auto;color:#10294d;font-size:22px;font-weight:600;letter-spacing:-1px}
+            .nps-shelf-note strong{color:#123760}
+            .nps-section{padding:76px 0}
+            .nps-section:nth-of-type(even){background:linear-gradient(180deg,rgba(9,15,27,.56),rgba(7,11,18,0))}
             .nps-muted{color:var(--muted)}
-            .nps-subhead{max-width:750px}
+            .nps-subhead{max-width:750px;color:#9aabc3}
             .nps-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:28px}
             .nps-cards-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:28px}
             .nps-cards-wide{grid-template-columns:1fr}
-            .nps-card{background:linear-gradient(150deg,#0f1623,#0b1220);border:1px solid #263449;border-radius:14px;display:flex;flex-direction:column;padding:25px}
-            .nps-card-featured{border:2px solid #06b6d4}
-            .nps-card-tag{color:#67e8f9;font-size:11px;font-weight:700;letter-spacing:1.4px;margin-bottom:12px;text-transform:uppercase}
-            .nps-card p{color:#a7b3c5;font-size:14px;margin:12px 0 18px}
-            .nps-card-price{color:#f8fafc;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-top:14px}
+            .nps-card{display:flex;flex-direction:column;border:1px solid rgba(139,168,209,.16);border-radius:20px;background:linear-gradient(145deg,rgba(15,25,43,.96),rgba(9,16,30,.96));padding:25px;box-shadow:inset 0 1px 0 rgba(255,255,255,.025);transition:transform .2s ease,border-color .2s ease}
+            .nps-card:hover{transform:translateY(-3px);border-color:rgba(109,186,255,.35)}
+            .nps-card-featured{border-color:rgba(95,197,255,.65);box-shadow:0 12px 40px rgba(28,117,211,.1),inset 0 1px 0 rgba(255,255,255,.04)}
+            .nps-card-tag{color:#82d8ff;font-size:10px;font-weight:700;letter-spacing:1.5px;margin-bottom:12px;text-transform:uppercase}
+            .nps-card p{color:#9eafc7;font-size:14px;margin:12px 0 18px}
+            .nps-card-price{color:#f1f6ff;font-size:26px;font-weight:700;letter-spacing:-.5px;margin-top:14px}
             .nps-card-price small{color:var(--muted);font-size:13px;font-weight:400}
             .nps-card ul{flex:1;list-style:none;margin:10px 0 20px;padding:0}
-            .nps-card li{border-top:1px solid #1e293b;font-size:14px;padding:8px 0 8px 22px;position:relative}
-            .nps-card li:before{color:#22d3ee;content:'✓';font-weight:700;left:0;position:absolute}
+            .nps-card li{position:relative;border-top:1px solid rgba(139,168,209,.12);font-size:13px;padding:9px 0 9px 22px}
+            .nps-card li:before{position:absolute;left:0;color:#7ad9ff;content:'✓';font-weight:700}
             .nps-card-actions{margin-top:auto}
             .nps-card-with-visual{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.75fr);align-items:stretch;gap:22px}
             .nps-card-copy{display:flex;flex-direction:column}
-            .nps-card-visual{align-self:stretch;margin:0;overflow:hidden;border:1px solid #263449;border-radius:10px;background:#050914}
+            .nps-card-visual{align-self:stretch;margin:0;overflow:hidden;border:1px solid rgba(139,168,209,.16);border-radius:14px;background:#050914}
             .nps-card-visual img{display:block;width:100%;height:100%;object-fit:cover}
             .nps-card-grid .nps-card-tag{margin-bottom:10px}
             .nps-card-grid h3{min-height:56px}
             .nps-card-grid p{min-height:63px}
-            .nps-notice{color:var(--muted);font-size:13px;margin-top:22px}
-            .nps-campaign{border:1px solid #263449;border-radius:14px;background:linear-gradient(145deg,rgba(15,22,35,.96),rgba(10,17,29,.92));margin-top:28px;padding:28px}
+            .nps-notice{color:#74869f;font-size:12px;margin-top:22px}
+            .nps-campaign{border:1px solid rgba(139,168,209,.18);border-radius:20px;background:radial-gradient(ellipse at 90% 50%,rgba(31,108,193,.16),transparent 48%),linear-gradient(145deg,#0e1b31,#09111f);margin-top:28px;padding:28px}
             .nps-campaign h2{margin-bottom:10px}
-            .nps-campaign p{color:#b6c2d2;max-width:820px}
-            .nps-media-visual{margin-top:28px;overflow:hidden;border:1px solid #263449;border-radius:14px;background:#050914}
+            .nps-campaign p{color:#a5b7d1;max-width:820px}
+            .nps-media-visual{margin-top:28px;overflow:hidden;border:1px solid rgba(139,168,209,.16);border-radius:18px;background:#050914}
             .nps-media-visual img{display:block;width:100%;height:auto}
-            .nps-band{background:linear-gradient(120deg,rgba(15,22,35,.9),rgba(9,15,26,.94));border-block:1px solid #1e293b}
+            .nps-band{background:linear-gradient(120deg,rgba(15,22,35,.9),rgba(9,15,26,.94));border-block:1px solid rgba(148,174,211,.16)}
             .nps-plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:28px}
-            .nps-plan{background:linear-gradient(150deg,#0f1623,#0b1220);border:1px solid #263449;border-radius:14px;display:flex;flex-direction:column;padding:25px}
-            .nps-plan-featured{border:2px solid #06b6d4;box-shadow:0 8px 34px rgba(6,182,212,.12)}
-            .nps-plan-tag{color:#67e8f9;font-size:11px;font-weight:700;letter-spacing:1.4px;margin-bottom:12px;text-transform:uppercase}
-            .nps-price{color:#f8fafc;font-size:46px;font-weight:800;letter-spacing:-2px;line-height:1.2;margin-top:18px}
-            .nps-price small{color:var(--muted);font-size:14px;font-weight:400;letter-spacing:0}
-            .nps-discount{color:#67e8f9;font-size:13px;font-weight:700;margin:4px 0 16px}
-            .nps-description{color:#a7b3c5;font-size:14px;min-height:68px}
+            .nps-plan{position:relative;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(139,168,209,.18);border-radius:20px;background:linear-gradient(145deg,#101d32,#0a1221);padding:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+            .nps-plan-featured{border-color:rgba(98,198,255,.66);background:radial-gradient(ellipse at 100% 0,rgba(35,119,200,.16),transparent 45%),linear-gradient(145deg,#10213b,#0a1323);box-shadow:0 16px 45px rgba(16,91,170,.12)}
+            .nps-plan-featured:before{position:absolute;top:0;left:28px;width:100px;height:1px;content:'';background:linear-gradient(90deg,transparent,#7dd6ff,transparent)}
+            .nps-plan-tag{color:#82d8ff;font-size:10px;font-weight:700;letter-spacing:1.5px;margin-bottom:12px;text-transform:uppercase}
+            .nps-price{color:#f1f6ff;font-size:44px;font-weight:650;letter-spacing:-2px;line-height:1.2;margin-top:18px}
+            .nps-price small{color:var(--muted);font-size:13px;font-weight:400;letter-spacing:0}
+            .nps-discount{color:#83d8ff;font-size:12px;font-weight:700;margin:4px 0 16px}
+            .nps-description{color:#a3b4cc;font-size:14px;min-height:68px}
             .nps-plan ul{flex:1;list-style:none;margin:18px 0 24px;padding:0}
-            .nps-plan li{border-top:1px solid #1e293b;font-size:14px;padding:8px 0 8px 22px;position:relative}
-            .nps-plan li:before{color:#22d3ee;content:'✓';font-weight:700;left:0;position:absolute}
-            .nps-footer{background:#070b12;border-top:1px solid var(--line);color:#fff;font-size:13px;padding:28px 0}
-            .nps-footer a{color:#00b8d8;text-decoration:none}
+            .nps-plan li{position:relative;border-top:1px solid rgba(139,168,209,.13);font-size:13px;padding:9px 0 9px 22px}
+            .nps-plan li:before{position:absolute;left:0;color:#7ad9ff;content:'✓';font-weight:700}
+            .nps-footer{border-top:1px solid var(--line);background:#070b12;color:#94a6bf;font-size:12px;padding:28px 0}
+            .nps-footer a{color:#7ccfff;text-decoration:none}
             .nps-campaign-band{display:flex;align-items:center;justify-content:space-between;gap:28px;margin:62px 0 24px;padding:32px}
-            .nps-campaign-band p{color:#b6c2d2;max-width:760px;margin-top:8px}
+            .nps-campaign-band p{color:#a5b7d1;max-width:760px;margin-top:8px}
             .nps-campaign-band .nps-actions{margin:0;flex-shrink:0}
-            .nps-inquiry-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(2,6,23,.82);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px}
-            .nps-inquiry-modal{width:min(560px,100%);background:#0f1623;border:1px solid #263449;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.55);padding:28px}
+            .nps-inquiry-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(2,6,23,.82);backdrop-filter:blur(8px);padding:20px}
+            .nps-inquiry-modal{width:min(560px,100%);border:1px solid rgba(139,168,209,.22);border-radius:20px;background:#0d1728;box-shadow:0 24px 80px rgba(0,0,0,.55);padding:28px}
             .nps-inquiry-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}
             .nps-inquiry-head h2{font-size:26px;margin:0}
             .nps-inquiry-close{border:0;background:transparent;color:#94a3b8;font-size:24px;cursor:pointer;line-height:1}
             .nps-inquiry-fields{display:grid;gap:14px}
             .nps-inquiry-fields label{display:grid;gap:7px;color:#cbd5e1;font-size:13px;font-weight:700}
-            .nps-inquiry-fields input,.nps-inquiry-fields textarea{width:100%;border:1px solid #334155;border-radius:8px;background:#070b12;color:#f8fafc;font:inherit;padding:11px 12px}
+            .nps-inquiry-fields input,.nps-inquiry-fields textarea{width:100%;border:1px solid #334155;border-radius:10px;background:#070b12;color:#f8fafc;font:inherit;padding:11px 12px}
+            .nps-inquiry-fields input:focus,.nps-inquiry-fields textarea:focus{border-color:#69caff;outline:2px solid rgba(105,202,255,.18)}
             .nps-inquiry-fields textarea{min-height:120px;resize:vertical}
             .nps-inquiry-status{font-size:14px;margin:14px 0 0}
-            .nps-inquiry-status.sent{color:#67e8f9}.nps-inquiry-status.error{color:#fda4af}
-            @media(max-width:800px){.nps-wrap{padding:0 18px}.nps-hero{padding:42px 0}.nps-hero-grid,.nps-cards,.nps-cards-three,.nps-plans,.nps-card-with-visual{grid-template-columns:1fr}.nps-hero-grid{gap:25px}.nps-section{padding:42px 0}.nps-description{min-height:0}.nps-links{gap:12px}.nps-card-visual{min-height:220px}.nps-card-grid h3,.nps-card-grid p{min-height:0}.nps-campaign-band{display:block}.nps-campaign-band .nps-actions{margin-top:18px}}
+            .nps-inquiry-status.sent{color:#8ee4ff}.nps-inquiry-status.error{color:#fda4af}
+            @media(max-width:900px){.nps-wrap{padding:0 22px}.nps-hero{width:calc(100% - 28px)}.nps-hero-grid{grid-template-columns:minmax(0,1fr) minmax(260px,.82fr);gap:28px;padding:56px 22px 42px}.nps-links{gap:13px}.nps-links .nps-btn{padding-inline:16px}.nps-cards-three{grid-template-columns:repeat(2,minmax(0,1fr))}.nps-card-with-visual{grid-template-columns:1fr}.nps-campaign-band{margin-top:48px}}
+            @media(max-width:640px){.nps-wrap{padding:0 18px}.nps-hero{width:calc(100% - 20px);margin-top:10px;border-radius:20px}.nps-nav{align-items:flex-start;padding:18px 0}.nps-links{display:grid;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 14px}.nps-links a{padding:7px 0}.nps-links .nps-btn{grid-column:1/-1;width:100%}.nps-hero-grid{grid-template-columns:1fr;gap:30px;padding:46px 18px 34px}.nps-page h1{font-size:clamp(42px,12vw,60px);margin:18px 0}.nps-lead{font-size:15px}.nps-hero-card{padding:20px}.nps-hero-shelf{grid-template-columns:1fr;padding:4px 18px}.nps-shelf-item{padding:15px 2px;border-right:0;border-bottom:1px solid rgba(20,54,99,.13)}.nps-shelf-item:last-child{border-bottom:0}.nps-section{padding:52px 0}.nps-plans,.nps-cards,.nps-cards-three{grid-template-columns:1fr}.nps-description,.nps-card-grid h3,.nps-card-grid p{min-height:0}.nps-plan,.nps-card{padding:22px}.nps-campaign-band{display:block;margin-top:40px;padding:22px}.nps-campaign-band .nps-actions{margin-top:18px}.nps-inquiry-modal{padding:22px}}
+            @media(prefers-reduced-motion:reduce){.nps-page *{scroll-behavior:auto!important;transition-duration:.01ms!important}}
           `,
         }}
       />
 
-      <header className="nps-wrap">
-        <nav className="nps-nav" aria-label="Publishing navigation">
-          <Link className="nps-brand" href="/newshub">
-            NYALTX <span>News Hub</span>
-            <small>NEW YORK ALT EXCHANGE</small>
-          </Link>
-          <div className="nps-links">
-            <a href="#news">News</a>
-            <a href="#projects">Projects</a>
-            <a href="#media">Media</a>
-            <a href="#roadshows">Roadshows</a>
-            <button className="nps-btn" onClick={() => openSubmitModal('feed')} type="button">
-              Submit your news
-            </button>
-          </div>
-        </nav>
-      </header>
-
       <section className="nps-hero">
+        <header className="nps-wrap">
+          <nav className="nps-nav" aria-label="Publishing navigation">
+            <Link className="nps-brand" href="/newshub">
+              NYALTX <span>News Hub</span>
+              <small>NEW YORK ALT EXCHANGE</small>
+            </Link>
+            <div className="nps-links">
+              <a href="#news">News</a>
+              <a href="#projects">Projects</a>
+              <a href="#media">Media</a>
+              <a href="#roadshows">Roadshows</a>
+              <button className="nps-btn" onClick={() => openSubmitModal('feed')} type="button">
+                Submit your news
+              </button>
+            </div>
+          </nav>
+        </header>
+
         <div className="nps-wrap nps-hero-grid">
           <div>
-            <div className="nps-eyebrow">Corporate Visibility &amp; Media Solutions</div>
+            <div className="nps-eyebrow">
+              <span aria-hidden="true" className="nps-live-dot" />
+              Corporate Visibility &amp; Media Solutions
+            </div>
             <h1>
               Your story deserves
               <br />
-              more than a headline.
+              <em>more than a headline.</em>
             </h1>
             <p className="nps-lead">
               Reach fintech, digital asset and capital markets audiences through news publishing,
@@ -261,20 +293,52 @@ export default function NewsPublishingPage({
             </div>
           </div>
           <aside className="nps-hero-card">
-            <div className="nps-eyebrow">Visibility across the NYALTX ecosystem</div>
+            <div className="nps-hero-card-head">
+              <div>
+                <div className="nps-eyebrow">Publishing flow</div>
+                <div className="nps-card-kicker">NYALTX / NEWS DESK</div>
+              </div>
+              <span className="nps-live">READY TO SUBMIT</span>
+            </div>
             <p>
-              <span className="nps-check">01</span>News publishing
+              <span className="nps-check">01</span>
+              <span className="nps-flow-copy">
+                <strong>Write your release</strong>
+                <small>Prepare your announcement and media</small>
+              </span>
             </p>
             <p>
-              <span className="nps-check">02</span>Project discovery
+              <span className="nps-check">02</span>
+              <span className="nps-flow-copy">
+                <strong>Choose a package</strong>
+                <small>Standard publishing or featured distribution</small>
+              </span>
             </p>
             <p>
-              <span className="nps-check">03</span>Fintech media and advertising
-            </p>
-            <p>
-              <span className="nps-check">04</span>Corporate roadshows
+              <span className="nps-check">03</span>
+              <span className="nps-flow-copy">
+                <strong>Submit and check out</strong>
+                <small>Complete your release submission online</small>
+              </span>
             </p>
           </aside>
+        </div>
+
+        <div className="nps-wrap nps-hero-shelf" aria-label="News publishing highlights">
+          <div className="nps-shelf-item">
+            <span className="nps-shelf-index">01</span>
+            <span><strong>News release</strong><small>One-time publishing</small></span>
+            <b>$99</b>
+          </div>
+          <div className="nps-shelf-item">
+            <span className="nps-shelf-index">02</span>
+            <span><strong>Featured release</strong><small>Seven-day placement</small></span>
+            <b>$199</b>
+          </div>
+          <div className="nps-shelf-item nps-shelf-note">
+            <span className="nps-shelf-index">03</span>
+            <span><strong>No membership</strong><small>Required for news publishing</small></span>
+          </div>
         </div>
       </section>
 
