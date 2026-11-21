@@ -118,14 +118,14 @@ const Footer = () => {
 
               {/* Newsletter Signup */}
               <div className="mt-6 w-full max-w-xl space-y-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm sm:p-6">
-                <div>
-                  {!hideNewsletterCopy && (
+                {!hideNewsletterCopy && (
+                  <div>
                     <p className="mb-2 text-xs font-light uppercase tracking-[0.18em] text-cyan-300">
                       / Newsletter
                     </p>
-                  )}
-                  <hr className="border-white/15" />
-                </div>
+                    <hr className="border-white/15" />
+                  </div>
+                )}
                 <p className="max-w-lg text-lg leading-relaxed text-white sm:text-xl">
                   <strong className="font-semibold">
                     {footerContent?.newsletter?.title || "Join Our Community"}

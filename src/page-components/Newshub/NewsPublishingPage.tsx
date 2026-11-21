@@ -111,20 +111,18 @@ export default function NewsPublishingPage({
             .nps-btn-outline{background:rgba(7,18,40,.55);border-color:rgba(171,201,241,.28);color:#eaf2ff!important;box-shadow:none}
             .nps-btn-outline:hover{background:rgba(23,43,76,.8);box-shadow:0 8px 24px rgba(0,0,0,.15)}
             .nps-btn-small{min-height:38px;font-size:13px;padding:8px 16px}
-            .nps-hero-grid{display:block;padding:108px 32px 72px}
-            .nps-hero-grid>div{max-width:900px;margin:0 auto;text-align:center}
-            .nps-eyebrow{display:flex;align-items:center;gap:10px;color:#8bdcff;font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase}
+            .nps-hero-grid{display:flex;min-height:100vh;padding:108px 32px 72px}
+            .nps-hero-grid>div{display:flex;flex:1;flex-direction:column;justify-content:center;max-width:900px;margin:0 auto;text-align:center}
             .nps-page h1,.nps-page h2,.nps-page h3,.nps-page p{margin:0}
             .nps-page h1{max-width:780px;margin:21px auto 22px;color:#f4f8ff;font-size:clamp(44px,6.6vw,82px);font-weight:500;letter-spacing:-.065em;line-height:.98}
             .nps-page h1 em{color:#9bcaff;font-family:Georgia,Cambria,"Times New Roman",serif;font-size:1.02em;font-weight:400;font-style:italic;letter-spacing:-.055em}
             .nps-page h2{color:#f4f8ff;font-size:clamp(30px,4vw,44px);font-weight:500;letter-spacing:-.055em;line-height:1.02;margin:7px 0 12px}
             .nps-page h3{color:#edf4ff;font-size:21px;font-weight:600;letter-spacing:-.35px;line-height:1.2}
-            .nps-lead{max-width:650px;margin-inline:auto;color:#aebfd9;font-size:17px;line-height:1.75;text-align:center}
+            .nps-hero .nps-lead{max-width:650px;margin:0 auto;color:#aebfd9;font-size:17px;line-height:1.75;text-align:center}
             .nps-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:28px}
             .nps-section{padding:76px 0}
             .nps-section:nth-of-type(even){background:linear-gradient(180deg,rgba(9,15,27,.56),rgba(7,11,18,0))}
             .nps-section#news{background-color:#0b0b0b;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 10px)}
-            .nps-section#news .nps-eyebrow{justify-content:center;color:#aaa}
             .nps-section#news h2,.nps-section#news .nps-subhead{text-align:center}
             .nps-section#news .nps-subhead{margin-inline:auto}
             .nps-muted{color:var(--muted)}
@@ -207,7 +205,6 @@ export default function NewsPublishingPage({
 
       <section className="nps-section" id="news">
         <div className="nps-wrap">
-          <div className="nps-eyebrow">01 / News Hub</div>
           <h2>Publish your news. Expand your visibility.</h2>
           <p className="nps-muted nps-subhead">
             Straightforward, one-time publishing options for corporate announcements, product
