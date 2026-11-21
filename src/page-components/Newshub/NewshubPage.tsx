@@ -42,6 +42,17 @@ interface Article {
   views?: number;
 }
 
+interface HubEvent {
+  id: string | number;
+  title: { en?: string } | string;
+  date_event?: string;
+  displayed_date?: string;
+  source?: string;
+  proof?: string;
+  coins?: Array<{ symbol?: string }>;
+  important?: boolean;
+}
+
 export interface NewshubInitialData {
   banners?: BannerSlide[];
   articles?: Article[];
@@ -168,7 +179,19 @@ function DiscoveryStory({ article, rank }: { article: Article; rank?: number }) 
         ariaLabel={`Read ${article.title}`}
       >
         {imageUrl ? (
-          <img src={imageUrl} alt={article.title} loading="lazy" />
+          <span className="nh-small-image">
+            <span
+              aria-hidden="true"
+              className="nh-small-image-backdrop"
+              style={{ backgroundImage: `url("${imageUrl}")` }}
+            />
+            <img
+              className="nh-small-image-main"
+              src={imageUrl}
+              alt={article.title}
+              loading="lazy"
+            />
+          </span>
         ) : (
           <span
             className="nh-discovery-image-fallback"
@@ -204,6 +227,37 @@ function DiscoveryStory({ article, rank }: { article: Article; rank?: number }) 
   );
 }
 
+function EventStory({ event }: { event: HubEvent }) {
+  const title = typeof event.title === 'string' ? event.title : event.title.en || 'Crypto event';
+  const date = event.displayed_date || (
+    event.date_event
+      ? new Date(event.date_event).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : 'Date to be announced'
+  );
+  const content = (
+    <>
+      <span className="nh-event-date">{date}</span>
+      <span className="nh-event-title">{title}</span>
+      <span className="nh-event-meta">
+        {event.coins?.map(coin => coin.symbol).filter(Boolean).join(' · ') || 'Crypto event'}
+        {event.important ? ' · Important' : ''}
+      </span>
+    </>
+  );
+
+  return event.source ? (
+    <a className="nh-event-card" href={event.source} target="_blank" rel="noopener noreferrer">
+      {content}
+    </a>
+  ) : (
+    <div className="nh-event-card">{content}</div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function NewshubPage({ initialData }: { initialData?: NewshubInitialData }) {
@@ -215,6 +269,7 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
   const [trendingFeed, setTrendingFeed] = useState<Article[]>(
     initialData?.trendingArticles ?? []
   );
+  const [hubEvents, setHubEvents] = useState<HubEvent[]>([]);
   const [categories, setCategories] = useState<string[]>(initialData?.categories ?? CATEGORIES);
   const [pagination, setPagination] = useState(
     initialData?.pagination ?? { total: 0, page: 1, pages: 1 }
@@ -279,6 +334,25 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
     }
     if (initialData === undefined) fetchData('All', 1);
   }, [fetchData, initialData, router]);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/events?page=1&max=4')
+      .then(async response => {
+        if (!response.ok) throw new Error(`Failed to load events (${response.status})`);
+        return response.json();
+      })
+      .then(data => {
+        if (active) setHubEvents(Array.isArray(data.body) ? data.body.slice(0, 4) : []);
+      })
+      .catch(error => {
+        console.error('Newshub events fetch error:', error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Category change → reset feed
   const initialCategoryLoad = useRef(true);
@@ -401,6 +475,21 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
           ))}
         </div>
       </section>
+      {hubEvents.length > 0 && (
+        <section className="nh-events-module" aria-labelledby="nh-events-title">
+          <div className="nh-discovery-heading">
+            <div>
+              <span className="nh-kicker">Calendar</span>
+              <h2 id="nh-events-title">Crypto events</h2>
+            </div>
+          </div>
+          <div className="nh-events-list">
+            {hubEvents.map(event => (
+              <EventStory key={event.id} event={event} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 
@@ -670,40 +759,51 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
                       <h2>Recent posts</h2>
                     </div>
                     <div className="nh-recent-post-list">
-                      {recentArticles.map(article => (
-                        <ArticleLink
-                          key={article._id}
-                          article={article}
-                          className="nh-recent-post"
-                          ariaLabel={`Read ${article.title}`}
-                        >
-                          {articleThumbnail(article) ? (
-                            <img
-                              src={articleThumbnail(article) || ''}
-                              alt=""
-                              loading="lazy"
-                            />
-                          ) : (
-                            <span
-                              className="nh-recent-post-fallback"
-                              style={{
-                                background:
-                                  GRADS[(article.coverColor ?? 0) % GRADS.length],
-                              }}
-                            />
-                          )}
-                          <span className="nh-recent-post-copy">
-                            <span className="nh-recent-post-topic">
-                              {article.category || article.tags?.[0] || 'NYALTX'}
+                      {recentArticles.map(article => {
+                        const imageUrl = articleThumbnail(article);
+                        return (
+                          <ArticleLink
+                            key={article._id}
+                            article={article}
+                            className="nh-recent-post"
+                            ariaLabel={`Read ${article.title}`}
+                          >
+                            {imageUrl ? (
+                              <span className="nh-recent-thumbnail">
+                                <span
+                                  aria-hidden="true"
+                                  className="nh-small-image-backdrop"
+                                  style={{ backgroundImage: `url("${imageUrl}")` }}
+                                />
+                                <img
+                                  className="nh-small-image-main"
+                                  src={imageUrl}
+                                  alt=""
+                                  loading="lazy"
+                                />
+                              </span>
+                            ) : (
+                              <span
+                                className="nh-recent-post-fallback"
+                                style={{
+                                  background:
+                                    GRADS[(article.coverColor ?? 0) % GRADS.length],
+                                }}
+                              />
+                            )}
+                            <span className="nh-recent-post-copy">
+                              <span className="nh-recent-post-topic">
+                                {article.category || article.tags?.[0] || 'NYALTX'}
+                              </span>
+                              <span className="nh-recent-post-title">{article.title}</span>
+                              <span className="nh-recent-post-meta">
+                                {article.author || 'NYALTX'} ·{' '}
+                                {relativeDate(article.publishedAt || article.createdAt)}
+                              </span>
                             </span>
-                            <span className="nh-recent-post-title">{article.title}</span>
-                            <span className="nh-recent-post-meta">
-                              {article.author || 'NYALTX'} ·{' '}
-                              {relativeDate(article.publishedAt || article.createdAt)}
-                            </span>
-                          </span>
-                        </ArticleLink>
-                      ))}
+                          </ArticleLink>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1069,8 +1169,10 @@ const STYLES = `
   .nh-recent-post-list { display: grid; grid-template-columns: 1fr; }
   .nh-recent-post { display: grid; min-width: 0; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 10px; border-bottom: 1px solid var(--nh-border); padding: 10px 0; color: inherit; text-decoration: none; }
   .nh-recent-post:first-child { padding-top: 6px; }
-  .nh-recent-post > img, .nh-recent-post-fallback { display: block; width: 84px; height: 64px; border-radius: 7px; object-fit: cover; transition: transform .2s ease; }
-  .nh-recent-post:hover > img { transform: scale(1.04); }
+  .nh-recent-thumbnail { position: relative; display: block; width: 84px; height: 64px; overflow: hidden; border-radius: 7px; background: #090f18; }
+  .nh-small-image-backdrop { position: absolute; inset: -8px; background-position: center; background-size: cover; filter: blur(10px) brightness(.55); transform: scale(1.08); }
+  .nh-small-image-main { position: relative; z-index: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
+  .nh-recent-post-fallback { display: block; width: 84px; height: 64px; border-radius: 7px; }
   .nh-recent-post-fallback { flex: none; }
   .nh-recent-post-copy { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
   .nh-recent-post-topic { color: #67e8f9; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -1095,7 +1197,7 @@ const STYLES = `
     color: #fff;
   }
   .nh-slide-backdrop { position: absolute; inset: -20px; background-position: center; background-size: cover; filter: blur(20px) brightness(.42); transform: scale(1.08); }
-  .nh-slide-image { position: absolute; z-index: 1; left: 50%; top: 50%; width: calc(100% - 80px); max-width: 90%; height: 88%; object-fit: contain; transform: translate(-50%,-50%); }
+  .nh-slide-image { position: absolute; z-index: 1; left: 50%; top: 0; width: calc(100% - 80px); max-width: 90%; height: 100%; object-fit: contain; object-position: center top; transform: translateX(-50%); }
   .nh-slide-shade { position: absolute; z-index: 2; inset: 0; background: linear-gradient(to top, rgba(2,6,12,.35), rgba(2,6,12,.06) 45%, transparent); }
   .nh-slide-copy { position: relative; z-index: 3; align-self: flex-start; width: fit-content; max-width: min(760px, 88%); color: #fff; }
   .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(20px, 2.5vw, 30px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
@@ -1115,9 +1217,9 @@ const STYLES = `
   /* ─── Chips ─── */
   .nh-category-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 0; border-bottom: 1px solid var(--nh-border); }
   .nh-kicker { color: var(--nh-accent); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-  .nh-category-title { margin: 4px 0 0; font-size: 19px; font-weight: 750; letter-spacing: -.02em; }
+  .nh-category-title { margin: 4px 0 0; font-size: 24px; font-weight: 750; letter-spacing: -.02em; }
   .nh-chips { display: flex; max-width: 100%; gap: 7px; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: thin; }
-  .nh-chip { position: relative; flex: 0 0 auto; white-space: nowrap; border: 1px solid transparent; background: transparent; color: var(--nh-muted); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: color .2s; }
+  .nh-chip { position: relative; flex: 0 0 auto; white-space: nowrap; border: 1px solid transparent; background: transparent; color: var(--nh-muted); padding: 7px 11px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: color .2s; }
   .nh-chip:hover { color: var(--nh-text); }
   .nh-chip.on { color: #fff; }
   .nh-chip-label { position: relative; z-index: 1; }
@@ -1128,6 +1230,13 @@ const STYLES = `
   .nh-inline-recommended { grid-column: 1 / -1; margin: 4px 0; border-top: 1px solid var(--nh-border); border-bottom: 1px solid var(--nh-border); padding: 18px 0; }
   .nh-inline-recommended .nh-discovery-module { border-top: 0; padding-top: 0; }
   .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .nh-events-module { margin-top: 20px; border-top: 1px solid var(--nh-border); padding-top: 16px; }
+  .nh-events-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .nh-event-card { display: flex; min-width: 0; flex-direction: column; gap: 7px; border: 1px solid var(--nh-border); border-radius: 9px; background: var(--nh-card); padding: 13px; color: inherit; text-decoration: none; transition: border-color .2s, background-color .2s; }
+  .nh-event-card:hover { border-color: var(--nh-accent); background: #111c2c; }
+  .nh-event-date { color: var(--nh-accent); font-size: 11px; font-weight: 700; }
+  .nh-event-title { display: -webkit-box; overflow: hidden; color: var(--nh-text); font-size: 14px; font-weight: 600; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .nh-event-meta { overflow: hidden; color: var(--nh-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .nh-feature-trending { margin: 18px 0 24px; }
   .nh-inline-topics { grid-column: 1 / -1; }
   .nh-discovery-module, .nh-topic-section { min-width: 0; border-top: 1px solid var(--nh-border); padding-top: 14px; }
@@ -1135,9 +1244,9 @@ const STYLES = `
   .nh-discovery-heading h2 { margin: 4px 0 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: 22px; font-weight: 500; letter-spacing: -.03em; }
   .nh-discovery-list { display: grid; gap: 14px; }
   .nh-discovery-card { display: grid; min-width: 0; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 12px; }
-  .nh-discovery-image { display: block; aspect-ratio: 4/3; overflow: hidden; border-radius: 8px; background: #090f18; }
-  .nh-discovery-image > img, .nh-discovery-image-fallback { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
-  .nh-discovery-image:hover > img { transform: scale(1.04); }
+  .nh-discovery-image { position: relative; display: block; aspect-ratio: 4/3; overflow: hidden; border-radius: 8px; background: #090f18; }
+  .nh-small-image { position: absolute; inset: 0; display: block; overflow: hidden; background: #090f18; }
+  .nh-discovery-image-fallback { display: block; width: 100%; height: 100%; }
   .nh-discovery-copy { min-width: 0; }
   .nh-discovery-topic { display: block; margin-bottom: 4px; color: #67e8f9; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
   .nh-discovery-copy h3 { display: -webkit-box; overflow: hidden; margin: 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: 15px; font-weight: 500; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -1182,10 +1291,10 @@ const STYLES = `
   .nh-article-link { color: var(--nh-text); text-decoration: none; }
   .nh-article-link:hover { color: var(--nh-accent); }
   .nh-muted { color: var(--nh-muted); }
-  @media(max-width:860px) { .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-topic-sections { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media(max-width:620px) { .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list, .nh-topic-sections { grid-template-columns: 1fr; } .nh-discovery-card, .nh-topic-list .nh-discovery-card { grid-template-columns: 84px minmax(0, 1fr); } .nh-discovery-heading h2 { font-size: 20px; } }
+  @media(max-width:860px) { .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-events-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-topic-sections { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media(max-width:620px) { .nh-inline-recommended .nh-discovery-list, .nh-feature-trending .nh-discovery-list, .nh-topic-sections { grid-template-columns: 1fr; } .nh-events-list { grid-template-columns: 1fr; } .nh-discovery-card, .nh-topic-list .nh-discovery-card { grid-template-columns: 84px minmax(0, 1fr); } .nh-discovery-heading h2 { font-size: 20px; } }
   @media(max-width:860px) { .nh-feature-grid { grid-template-columns: minmax(0, 1.65fr) minmax(220px, 1fr); } .nh-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nh-bento-featured, .nh-bento-compact, .nh-bento-standard { grid-column: span 1; } .nh-bento-featured .nh-bento-image { aspect-ratio: 16/9; } }
-  @media(max-width:620px) { .nh-wrap { padding: 8px 2px; } .nh-category-bar { align-items: flex-start; } .nh-feature-grid, .nh-feature-grid:not(.has-side) { grid-template-columns: 1fr; } .nh-feature-primary .nh-slider, .nh-lead-story { height: clamp(320px, 82vw, 420px); min-height: 320px; } .nh-feature-secondary { min-height: 0; } .nh-cards { grid-template-columns: 1fr; } .nh-bento-card, .nh-card-skeleton { grid-column: span 1; } .nh-bento-featured .nh-bento-content h3 { font-size: 19px; } }
+  @media(max-width:620px) { .nh-wrap { padding: 8px 2px; } .nh-category-bar { align-items: flex-start; } .nh-category-title { font-size: 22px; } .nh-chip { font-size: 13px; } .nh-feature-grid, .nh-feature-grid:not(.has-side) { grid-template-columns: 1fr; } .nh-feature-primary .nh-slider, .nh-lead-story { height: clamp(320px, 82vw, 420px); min-height: 320px; } .nh-feature-secondary { min-height: 0; } .nh-cards { grid-template-columns: 1fr; } .nh-bento-card, .nh-card-skeleton { grid-column: span 1; } .nh-bento-featured .nh-bento-content h3 { font-size: 19px; } }
 
   .nh-empty-state { margin-bottom: 12px; border: 1px solid var(--nh-border); border-radius: 12px; background: var(--nh-card); }
 

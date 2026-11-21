@@ -961,7 +961,7 @@ export default function SubmitNewsModalCorporate({
       role="presentation"
     >
       <motion.div
-        className="relative h-full w-full max-w-3xl overflow-y-auto border-l border-gray-700/40 bg-gray-900 p-6 text-white shadow-2xl sm:p-8"
+        className="relative h-full w-full max-w-none overflow-y-auto border-l border-gray-700/40 bg-gray-900 p-6 text-white shadow-2xl sm:p-8"
         style={FONT}
         initial={{ x: '100%' }}
         animate={{ x: drawerClosing ? '100%' : 0 }}
