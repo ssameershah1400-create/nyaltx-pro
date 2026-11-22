@@ -29,10 +29,7 @@ export async function getPayPalCryptoAccessToken() {
   const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() || '';
   const serverSecret = process.env.PAYPAL_CLIENT_SECRET?.trim() || '';
   const legacySecret = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_SECRET?.trim() || '';
-  const clientSecrets = [serverSecret, legacySecret].filter(
-    (secret, index, secrets) =>
-      secret && secret !== 'test' && secrets.indexOf(secret) === index,
-  );
+  const clientSecret = serverSecret || legacySecret;
 
   if (!serverSecret && legacySecret && !warnedAboutLegacySecret) {
     console.warn(
@@ -41,10 +38,7 @@ export async function getPayPalCryptoAccessToken() {
     warnedAboutLegacySecret = true;
   }
 
-  if (
-    INVALID_CLIENT_ID_VALUES.has(clientId) ||
-    clientSecrets.length === 0
-  ) {
+  if (INVALID_CLIENT_ID_VALUES.has(clientId) || !clientSecret || clientSecret === 'test') {
     throw new PayPalCryptoConfigurationError();
   }
 
@@ -67,55 +61,34 @@ export async function getPayPalCryptoAccessToken() {
     ? 'https://api-m.sandbox.paypal.com'
     : 'https://api-m.paypal.com';
 
-  for (const [index, clientSecret] of clientSecrets.entries()) {
-    const response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'grant_type=client_credentials',
-      cache: 'no-store',
-      signal: AbortSignal.timeout(10_000),
+  const response = await fetch(`${apiBaseUrl}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  const tokenData: { access_token?: string; error?: string; error_description?: string } =
+    await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const paypalError =
+      typeof tokenData.error === 'string' ? tokenData.error.slice(0, 100) : undefined;
+    console.error('PayPal crypto OAuth failed:', {
+      status: response.status,
+      error: paypalError,
+      description: tokenData.error_description,
     });
-
-    const tokenData: { access_token?: string; error?: string; error_description?: string } =
-      await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const paypalError =
-        typeof tokenData.error === 'string' ? tokenData.error.slice(0, 100) : undefined;
-      if (
-        (response.status === 401 || response.status === 403) &&
-        index < clientSecrets.length - 1
-      ) {
-        console.warn(
-          'PayPal rejected PAYPAL_CLIENT_SECRET; retrying authentication with the legacy secret.',
-        );
-        continue;
-      }
-
-      console.error('PayPal crypto OAuth failed:', {
-        status: response.status,
-        environment: paypalEnvironment,
-        error: paypalError,
-        description: tokenData.error_description,
-      });
-      throw new PayPalCryptoAuthenticationError(response.status, paypalError, paypalEnvironment);
-    }
-
-    if (!tokenData.access_token) {
-      throw new Error('PayPal returned no access token for crypto checkout.');
-    }
-
-    if (index > 0) {
-      console.warn(
-        'PayPal accepted the legacy secret after rejecting PAYPAL_CLIENT_SECRET. Update the server secret and remove NEXT_PUBLIC_PAYPAL_CLIENT_SECRET.',
-      );
-    }
-
-    return { accessToken: tokenData.access_token, apiBaseUrl };
+    throw new PayPalCryptoAuthenticationError(response.status, paypalError, paypalEnvironment);
   }
 
-  throw new Error('PayPal authentication failed for all configured server credentials.');
+  if (!tokenData.access_token) {
+    throw new Error('PayPal returned no access token for crypto checkout.');
+  }
+
+  return { accessToken: tokenData.access_token, apiBaseUrl };
 }
