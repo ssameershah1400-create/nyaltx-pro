@@ -1336,7 +1336,7 @@ export default function SubmitNewsModalCorporate({
 
         {/* Step 3: Pay */}
         {modalStep === 3 && (
-          <div className="mx-auto w-full max-w-3xl space-y-4">
+          <div className="space-y-4">
             <div>
               <label className={LABEL}>
                 Your Contact Email (for editorial updates & live notification) *
@@ -1489,14 +1489,20 @@ export default function SubmitNewsModalCorporate({
                       tier={`${subType}_${plan}`}
                       email={userEmail.trim()}
                       cardOnly={payMethod === 'card'}
-                      requireServerVerification
-                      onBeforePayment={() => saveNewsCryptoDraft()}
                       onBeforeCryptoRedirect={() => saveNewsCryptoDraft()}
                       onSuccess={(details: any) => {
-                        try {
-                          saveNewsCryptoDraft(details.id);
-                        } catch (error) {
-                          console.error('Could not save the completed PayPal payment draft:', error);
+                        const isCryptoPayment =
+                          details?.paymentSource === 'paypal_crypto' ||
+                          details?.payment_source?.crypto;
+                        if (isCryptoPayment) {
+                          try {
+                            saveNewsCryptoDraft(details.id);
+                          } catch (error) {
+                            console.error(
+                              'Could not save the verified PayPal crypto payment:',
+                              error
+                            );
+                          }
                         }
                         setPendingPaypalPaymentId(details.id);
                         return handlePayAndSubmit({
