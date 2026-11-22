@@ -5,6 +5,7 @@ import NewsSubmissionConfirmation from '@/emails/NewsSubmissionConfirmation';
 import { render } from '@react-email/render';
 import nodemailer from 'nodemailer';
 import { getCollection } from '@/lib/mongodb';
+import { getPayPalEnvironment } from '@/lib/paypalEnvironment';
 
 // Create Namecheap / SMTP email transporter (consistent with tokens/contact routes)
 export const createEmailTransporter = () => {
@@ -91,10 +92,7 @@ export async function verifyNewsPayment(params: VerifyPaymentParams): Promise<Pa
     // If PayPal API credentials exist on backend, verify directly with PayPal v2 API
     if (clientId && clientSecret && clientId !== 'test' && clientId !== 'your-paypal-client-id-here') {
       try {
-        const environment = process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase();
-        const isSandbox = environment
-          ? environment === 'sandbox'
-          : process.env.NODE_ENV !== 'production' || clientId.toLowerCase().startsWith('sb-');
+        const isSandbox = getPayPalEnvironment() === 'sandbox';
         const paypalHost = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
 
         const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');

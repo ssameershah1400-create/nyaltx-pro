@@ -35,10 +35,13 @@ export default function PayPalCheckout({
   const cryptoCreateInProgressRef = useRef(false);
 
   // Check if PayPal SDK is properly configured
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() || '';
+  const isSandboxClient = paypalClientId.toLowerCase().startsWith('sb-');
   const isPayPalConfigured =
-    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID &&
-    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'your-paypal-client-id-here' &&
-    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'test';
+    paypalClientId !== '' &&
+    paypalClientId !== 'your-paypal-client-id-here' &&
+    paypalClientId !== 'test' &&
+    (process.env.NODE_ENV === 'production' ? !isSandboxClient : isSandboxClient);
 
   const handleSuccess = async (details: any) => {
     const processingToast = toast.loading('🔄 Processing your payment...');
@@ -430,8 +433,8 @@ export default function PayPalCheckout({
             fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
           }}
         >
-          PayPal payments are not available. Please configure your PayPal Client ID in environment
-          variables.
+          PayPal payments are not available. Configure a live PayPal Client ID in production or a
+          sandbox Client ID for local testing.
         </div>
         <div
           className="text-xs text-gray-400"

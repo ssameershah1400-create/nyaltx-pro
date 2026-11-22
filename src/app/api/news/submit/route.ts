@@ -5,6 +5,7 @@ import { verifyNewsPayment, sendNewsSubmissionConfirmationEmail } from '@/lib/ne
 import { findUsablePromoCode } from '@/lib/newsPromoCodes';
 import { calculateNewsPrice } from '@/lib/newsPricing';
 import { getNewshubCategories } from '@/lib/newshubInitialData';
+import { getPayPalEnvironment, isNewsSandboxTestEnabled } from '@/lib/paypalEnvironment';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,12 +33,8 @@ export async function POST(req: NextRequest) {
       isTest = false,
     } = data;
 
-    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim().toLowerCase() || '';
-    const paypalEnvironment =
-      process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase() ||
-      (process.env.NODE_ENV !== 'production' || clientId.startsWith('sb-') ? 'sandbox' : 'live');
-    const testPlanEnabled =
-      process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN === 'true' || paypalEnvironment === 'sandbox';
+    const paypalEnvironment = getPayPalEnvironment();
+    const testPlanEnabled = isNewsSandboxTestEnabled();
     const isSandboxTest = Boolean(isTest) && plan === 'test';
 
     if (!['paypal', 'usdc', 'nyax'].includes(paymentMethod)) {
@@ -59,13 +56,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (isSandboxTest) {
-      if (!testPlanEnabled || paypalEnvironment !== 'sandbox') {
+    if (plan === 'test' || isTest) {
+      if (!isSandboxTest || !testPlanEnabled || paypalEnvironment !== 'sandbox') {
         return NextResponse.json(
-          {
-            error:
-              'PayPal sandbox testing is only available while the app uses sandbox credentials.',
-          },
+          { error: 'PayPal sandbox testing is only available in local sandbox mode.' },
           { status: 400 }
         );
       }

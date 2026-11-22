@@ -1,4 +1,5 @@
 import 'server-only';
+import { getPayPalEnvironment } from '@/lib/paypalEnvironment';
 
 const INVALID_CLIENT_ID_VALUES = new Set(['', 'test', 'your-paypal-client-id-here']);
 let warnedAboutLegacySecret = false;
@@ -42,16 +43,7 @@ export async function getPayPalCryptoAccessToken() {
     throw new PayPalCryptoConfigurationError();
   }
 
-  const environment = process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase();
-  if (environment && environment !== 'sandbox' && environment !== 'live') {
-    throw new PayPalCryptoConfigurationError(
-      'Invalid PayPal environment. Set PAYPAL_ENVIRONMENT to sandbox or live.',
-    );
-  }
-
-  const sandbox = environment
-    ? environment === 'sandbox'
-    : clientId.toLowerCase().startsWith('sb-') || process.env.NODE_ENV !== 'production';
+  const sandbox = getPayPalEnvironment() === 'sandbox';
   const paypalEnvironment = sandbox ? 'sandbox' : 'live';
   const apiBaseUrl = sandbox
     ? 'https://api-m.sandbox.paypal.com'

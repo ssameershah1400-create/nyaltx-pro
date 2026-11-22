@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import NewsPublishingPage from '@/page-components/Newshub/NewsPublishingPage';
+import { isNewsSandboxTestEnabled } from '@/lib/paypalEnvironment';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.nyaltx.pro'),
@@ -25,12 +26,7 @@ interface NewsPublishingRouteProps {
 
 export default async function NewsPublishingRoute({ searchParams }: NewsPublishingRouteProps) {
   const { modal, plan } = await searchParams;
-  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim().toLowerCase() || '';
-  const paypalEnvironment =
-    process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase() ||
-    (process.env.NODE_ENV !== 'production' || clientId.startsWith('sb-') ? 'sandbox' : 'live');
-  const testPlanEnabled =
-    process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN === 'true' || paypalEnvironment === 'sandbox';
+  const testPlanEnabled = isNewsSandboxTestEnabled();
   const initialPlan =
     plan === 'slider' ? 'slider' : plan === 'test' && testPlanEnabled ? 'test' : 'feed';
 
