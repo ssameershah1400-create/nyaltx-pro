@@ -18,8 +18,16 @@ export async function GET() {
             (error.status === 401 || error.status === 403)
           ? 'credentials'
           : 'provider';
+    const authenticationDetails =
+      error instanceof PayPalCryptoAuthenticationError
+        ? {
+            paypalStatus: error.status,
+            paypalError: error.paypalError,
+            environment: error.environment,
+          }
+        : {};
     return NextResponse.json(
-      { ready: false, reason },
+      { ready: false, reason, ...authenticationDetails },
       {
         status: 503,
         headers: { 'Cache-Control': 'no-store' },
