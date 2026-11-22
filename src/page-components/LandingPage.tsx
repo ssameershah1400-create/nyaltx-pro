@@ -930,6 +930,7 @@ function NewsHubCarousel() {
   const [failed, setFailed] = React.useState(false);
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [offset, setOffset] = React.useState(0);
+  const [isPaused, setIsPaused] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -981,8 +982,31 @@ function NewsHubCarousel() {
     setOffset(current => Math.min(current, maxOffset));
   }, [maxOffset]);
 
+  React.useEffect(() => {
+    if (shouldReduceMotion || isPaused || loading || failed || maxOffset === 0) return;
+
+    const interval = window.setInterval(() => {
+      setOffset(current => (current >= maxOffset ? 0 : current + 1));
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [failed, isPaused, loading, maxOffset, shouldReduceMotion]);
+
   return (
-    <section className="mx-auto max-w-7xl px-6 py-16 md:py-20" aria-labelledby="landing-news-title">
+    <section
+      className="mx-auto max-w-7xl px-6 py-16 md:py-20"
+      aria-labelledby="landing-news-title"
+      aria-roledescription="carousel"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocusCapture={() => setIsPaused(true)}
+      onBlurCapture={event => {
+        const nextTarget = event.relatedTarget;
+        if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+          setIsPaused(false);
+        }
+      }}
+    >
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-cyan-300">NEWS HUB</p>
@@ -1063,7 +1087,7 @@ function NewsHubCarousel() {
                         src={imageUrl}
                         alt=""
                         loading="lazy"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     )}
                   </div>
