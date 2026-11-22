@@ -1,30 +1,30 @@
 {
   "hero": {
-    "title": "Discover. Track. Explore the Future of Digital Markets.",
-    "subtitle": "New York Alt Exchange brings together digital assets, blockchain innovation, and tokenized securities market intelligence in one platform.",
-    "ctaText": "Explore Dashboard",
+    "title": "Find the project. Follow the news. Be in the room.",
+    "subtitle": "NYALTX brings blockchain discovery, a dedicated market news hub, and live events together, so you can follow digital assets from first listing to front-page story.",
+    "ctaText": "Explore Blockchain Discovery",
     "ctaLink": "/dashboard",
     "backgroundImage": "/New York Token Exchange Skyline.png"
   },
   "features": {
-    "title": "Why Choose NYALTX?",
+    "title": "One platform, three ways in",
     "subtitle": "Our platform combines cutting-edge technology with user-friendly design to deliver the ultimate DeFi experience.",
     "items": [
       {
-        "title": "Multi-Chain Trading",
-        "description": "Swap seamlessly across Ethereum, BSC, Polygon, Arbitrum, Optimism, Solana, and more. One platform, unlimited possibilities.",
+        "title": "Blockchain Discovery",
+        "description": "Browse listed projects across chains, compare metrics side by side, and find what is worth a closer look.",
         "icon": "🌐",
         "image": "/images/features/multi-chain.jpg"
       },
       {
-        "title": "Advanced Analytics",
-        "description": "Make informed decisions with real-time market data, comprehensive token metrics, and professional-grade charting tools.",
+        "title": "News Hub",
+        "description": "Market news, project announcements, and tokenized securities coverage, gathered in one reading list.",
         "icon": "📊",
         "image": "/images/features/analytics.jpg"
       },
       {
-        "title": "Gamified Experience",
-        "description": "Earn rewards, climb leaderboards, and compete in our Race to Liberty system. Trading has never been this engaging.",
+        "title": "Events",
+        "description": "Conferences, panels, and meetups from the NYALTX community and the wider digital assets world.",
         "icon": "🏆",
         "image": "/images/features/gamification.jpg"
       },

@@ -97,15 +97,9 @@ export default function PayPalCheckout({
           throw error;
         }
       } else if (tier.toLowerCase().startsWith('news') || tier.toLowerCase().startsWith('pr')) {
-        const orderToast = toast.loading('📝 Recording submission payment...');
-        try {
-          await storePayPalOrder(details);
-          toast.dismiss(orderToast);
-          toast.success('✅ Payment verified! Submitting story...');
-        } catch (error) {
-          toast.dismiss(orderToast);
-          console.warn('Order record notice:', error);
-        }
+        // The News submission API records the verified payment and the order atomically.
+        // Avoid a generic order-only write here, which can show up without the story.
+        toast.success('✅ Payment verified! Submitting story...');
       } else {
         // For other payments, check if there's a pending token registration
         const pendingTokenData = localStorage.getItem('pendingTokenRegistration');
@@ -307,12 +301,14 @@ export default function PayPalCheckout({
       });
 
       if (!response.ok) {
-        console.error('Failed to store PayPal order');
-      } else {
-        console.log('✅ PayPal order stored successfully');
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || 'Failed to store PayPal order');
       }
+
+      console.log('✅ PayPal order stored successfully');
     } catch (error) {
       console.error('Error storing PayPal order:', error);
+      throw error;
     }
   };
 

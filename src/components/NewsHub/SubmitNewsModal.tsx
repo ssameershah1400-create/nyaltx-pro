@@ -953,7 +953,7 @@ export default function SubmitNewsModalCorporate({
 
   return (
     <motion.div
-      className="fixed inset-0 z-[120] flex justify-end bg-black/75 backdrop-blur-md"
+      className="fixed inset-0 z-[120] flex justify-end bg-black/75"
       initial={{ opacity: 0 }}
       animate={{ opacity: drawerClosing ? 0 : 1 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
@@ -1111,12 +1111,12 @@ export default function SubmitNewsModalCorporate({
             <div>
               <label className={LABEL}>Cover image (optional)</label>
 
-              <div className={`mb-3 p-4 ${PANEL}`}>
+              <div className="mb-3 rounded-lg border border-gray-200 bg-white p-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-sm font-medium text-red-300">Upload to IPFS</span>
-                  <div className="flex-1 h-px bg-gray-600/50"></div>
+                  <span className="text-sm font-medium text-red-700">Upload to IPFS</span>
+                  <div className="flex-1 h-px bg-gray-200"></div>
                 </div>
-                <div className="mb-3 text-xs text-gray-400">
+                <div className="mb-3 text-xs text-gray-600">
                   Use a 1200x600 px (2:1) image for best results. Images fit the card without
                   cropping. Minimum 400x200 px; max 10MB; JPEG/PNG/GIF/WebP.
                 </div>
@@ -1139,7 +1139,7 @@ export default function SubmitNewsModalCorporate({
                   </label>
 
                   {selectedFile && (
-                    <span className="text-sm text-gray-400 flex-1 truncate min-w-0">
+                    <span className="text-sm text-gray-700 flex-1 truncate min-w-0">
                       {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                     </span>
                   )}
@@ -1441,7 +1441,7 @@ export default function SubmitNewsModalCorporate({
             {/* PayPal */}
             {(payMethod === 'paypal' || payMethod === 'card') && (
               <div className="p-4 bg-gray-700/30 border border-blue-500/30 rounded-lg space-y-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center gap-3 text-center">
                   <div className="w-9 h-9 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/30 text-blue-300">
                     <PayPalIcon />
                   </div>
