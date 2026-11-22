@@ -6,7 +6,14 @@ import { useLandingPageContent } from '@/hooks/useTinaContent';
 import { toReliableIpfsUrl } from '@/utils/ipfsUpload';
 import { ExchangeIcon, NetworkIcon, TokenIcon, WalletIcon } from '@web3icons/react/dynamic';
 import type { Variants } from 'framer-motion';
-import { motion, useAnimationFrame, useMotionValue, useReducedMotion } from 'framer-motion';
+import {
+  animate,
+  motion,
+  useAnimationFrame,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+} from 'framer-motion';
 import {
   BarChart3,
   ChevronLeft,
@@ -22,6 +29,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import { FiArrowRight } from 'react-icons/fi';
 
 const container: Variants = {
   hidden: { opacity: 0 },
@@ -465,7 +473,133 @@ export default function LandingPage(props?: LandingPageProps) {
           </div>
         </motion.div>
       </motion.section>
+      <LandingNewsletterSection />
     </div>
+  );
+}
+
+function LandingNewsletterSection() {
+  const [email, setEmail] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [message, setMessage] = React.useState('');
+  const [messageType, setMessageType] = React.useState<'success' | 'error'>('success');
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const turn = useMotionValue(0);
+  const backgroundImage = useMotionTemplate`conic-gradient(from ${turn}turn, #a78bfa00 75%, #a78bfa 100%)`;
+  const shouldReduceMotion = useReducedMotion();
+
+  React.useEffect(() => {
+    if (shouldReduceMotion) return;
+
+    const controls = animate(turn, 1, {
+      ease: 'linear',
+      duration: 5,
+      repeat: Infinity,
+    });
+    return () => controls.stop();
+  }, [turn, shouldReduceMotion]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const result: { message?: string; error?: string } = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Could not subscribe. Please try again.');
+      }
+
+      setMessage(result.message || 'Successfully subscribed to the NYALTX newsletter.');
+      setMessageType('success');
+      setEmail('');
+    } catch (error) {
+      console.error('Landing page newsletter signup error:', error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Network error. Please check your connection and try again.'
+      );
+      setMessageType('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <section
+      className="border-t border-white/10 bg-black/40 px-6 py-16 md:py-20"
+      aria-labelledby="landing-newsletter-title"
+    >
+      <div className="mx-auto max-w-3xl text-center">
+        <h2 id="landing-newsletter-title" className={sectionHeadingClass}>
+          Get the newsletter
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-gray-300 sm:text-base">
+          Market updates, new listings, and event announcements in your inbox.
+        </p>
+        <form
+          onSubmit={handleSubmit}
+          onClick={() => inputRef.current?.focus()}
+          className="relative mx-auto mt-8 flex w-full max-w-md items-center gap-2 rounded-full border border-white/20 bg-gradient-to-br from-white/20 to-white/5 py-1.5 pl-6 pr-1.5"
+        >
+          <input
+            ref={inputRef}
+            type="email"
+            value={email}
+            onChange={event => setEmail(event.target.value)}
+            aria-label="Email address"
+            placeholder="Enter your email"
+            className="w-full bg-transparent text-sm text-white placeholder-white/80 focus:outline-0"
+            required
+            disabled={isSubmitting}
+          />
+          <button
+            onClick={event => event.stopPropagation()}
+            type="submit"
+            disabled={isSubmitting}
+            className="group mr-2 flex shrink-0 items-center gap-1.5 rounded-full bg-cyan-500/90 px-4 py-3 text-sm font-semibold tracking-tight text-white transition-colors hover:bg-cyan-400 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span>{isSubmitting ? 'Subscribing...' : 'Subscribe'}</span>
+            <FiArrowRight
+              aria-hidden="true"
+              className="-mr-4 opacity-0 transition-all group-hover:-mr-0 group-hover:opacity-100 group-active:-rotate-45"
+            />
+          </button>
+          <div className="pointer-events-none absolute inset-0 z-10 rounded-full">
+            <motion.div
+              style={{ backgroundImage }}
+              className="mask-with-browser-support absolute -inset-[1px] rounded-full border border-transparent bg-origin-border"
+            />
+          </div>
+        </form>
+        {message && (
+          <p
+            role={messageType === 'error' ? 'alert' : 'status'}
+            className={`mx-auto mt-4 max-w-md text-sm ${
+              messageType === 'error' ? 'text-red-300' : 'text-emerald-300'
+            }`}
+          >
+            {message}
+          </p>
+        )}
+      </div>
+      <style jsx global>{`
+        .mask-with-browser-support {
+          mask:
+            linear-gradient(#fff 0 0) padding-box,
+            linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+        }
+      `}</style>
+    </section>
   );
 }
 
@@ -930,6 +1064,7 @@ function NewsHubCarousel() {
   const [failed, setFailed] = React.useState(false);
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [offset, setOffset] = React.useState(0);
+  const [isPaused, setIsPaused] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -981,8 +1116,31 @@ function NewsHubCarousel() {
     setOffset(current => Math.min(current, maxOffset));
   }, [maxOffset]);
 
+  React.useEffect(() => {
+    if (shouldReduceMotion || isPaused || loading || failed || maxOffset === 0) return;
+
+    const interval = window.setInterval(() => {
+      setOffset(current => (current >= maxOffset ? 0 : current + 1));
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [failed, isPaused, loading, maxOffset, shouldReduceMotion]);
+
   return (
-    <section className="mx-auto max-w-7xl px-6 py-16 md:py-20" aria-labelledby="landing-news-title">
+    <section
+      className="mx-auto max-w-7xl px-6 py-16 md:py-20"
+      aria-labelledby="landing-news-title"
+      aria-roledescription="carousel"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocusCapture={() => setIsPaused(true)}
+      onBlurCapture={event => {
+        const nextTarget = event.relatedTarget;
+        if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+          setIsPaused(false);
+        }
+      }}
+    >
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-cyan-300">NEWS HUB</p>
@@ -1063,7 +1221,7 @@ function NewsHubCarousel() {
                         src={imageUrl}
                         alt=""
                         loading="lazy"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     )}
                   </div>
