@@ -129,15 +129,16 @@ const PUBLISH_PLANS: PlanItem[] = [
 
 const NEWS_TEST_PLAN: PlanItem = {
   id: 'test',
-  badge: 'TEST PLAN',
-  name: 'Checkout Flow Test',
+  badge: 'PAYPAL SANDBOX',
+  name: 'PayPal Sandbox Checkout Test',
   price: 1,
-  priceLabel: 'temporary test release',
-  ctaText: 'Test Checkout',
-  desc: 'A temporary $1 plan for testing the full news submission and checkout flow.',
+  priceLabel: 'sandbox test charge',
+  ctaText: 'Test PayPal',
+  desc: 'A $1 PayPal sandbox test for the complete news submission and checkout flow.',
   features: [
-    'Complete the standard submission and checkout steps',
-    'Test submission remains subject to moderation',
+    'Uses PayPal sandbox credentials only',
+    'Does not publish or moderate a live article',
+    'Verifies the complete checkout and submission response',
   ],
 };
 
@@ -662,6 +663,7 @@ export default function SubmitNewsModalCorporate({
       paymentId: paymentOverride?.paymentId || null,
       walletAddress: paymentOverride?.walletAddress || null,
       paymentStatus: 'completed',
+      isTest: plan === 'test',
     };
 
     try {
@@ -674,27 +676,30 @@ export default function SubmitNewsModalCorporate({
       const resData = await response.json();
       if (!response.ok) throw new Error(resData.error || 'Submission failed');
 
-      const newLocalItem = {
-        t: headline.trim(),
-        s: subType === 'pr' ? 'Press release · You' : 'You · just now',
-        c: category,
-        tm: 'Just now',
-        d: summary.trim(),
-        g: selectedSwatch,
-        img: uploadedImg,
-        pend: true,
-        com: subType !== 'pr',
-        pr: subType === 'pr',
-      };
+      let newLocalItem: any = null;
+      if (!resData.test) {
+        newLocalItem = {
+          t: headline.trim(),
+          s: subType === 'pr' ? 'Press release · You' : 'You · just now',
+          c: category,
+          tm: 'Just now',
+          d: summary.trim(),
+          g: selectedSwatch,
+          img: uploadedImg,
+          pend: true,
+          com: subType !== 'pr',
+          pr: subType === 'pr',
+        };
 
-      try {
-        const stored = localStorage.getItem('nyaltx_news_submissions');
-        const existing = stored ? JSON.parse(stored) : [];
-        localStorage.setItem(
-          'nyaltx_news_submissions',
-          JSON.stringify([newLocalItem, ...existing])
-        );
-      } catch {}
+        try {
+          const stored = localStorage.getItem('nyaltx_news_submissions');
+          const existing = stored ? JSON.parse(stored) : [];
+          localStorage.setItem(
+            'nyaltx_news_submissions',
+            JSON.stringify([newLocalItem, ...existing])
+          );
+        } catch {}
+      }
 
       try {
         sessionStorage.removeItem(NEWS_PAYPAL_CRYPTO_DRAFT_KEY);
@@ -702,7 +707,7 @@ export default function SubmitNewsModalCorporate({
         console.error('Could not clear the completed news payment draft:', error);
       }
       setPendingPaypalPaymentId('');
-      onSuccess?.(newLocalItem);
+      if (newLocalItem) onSuccess?.(newLocalItem);
       setModalStep(4);
     } catch (err: any) {
       const base = err.message || 'Error submitting story. Please try again.';
@@ -811,9 +816,7 @@ export default function SubmitNewsModalCorporate({
       type="button"
       onClick={() => setPayMethod(id)}
       className={`p-2.5 rounded-none border text-xs font-medium transition-colors flex items-center justify-center gap-2 ${
-        payMethod === id
-          ? active
-          : 'border-[#eeeeee] bg-white text-gray-700 hover:bg-gray-50'
+        payMethod === id ? active : 'border-[#eeeeee] bg-white text-gray-700 hover:bg-gray-50'
       }`}
     >
       {LOGOS[id]}
@@ -966,9 +969,7 @@ export default function SubmitNewsModalCorporate({
         initial={{ x: '100%' }}
         animate={{ x: drawerClosing ? '100%' : 0 }}
         transition={
-          prefersReducedMotion
-            ? { duration: 0 }
-            : { type: 'spring', damping: 32, stiffness: 300 }
+          prefersReducedMotion ? { duration: 0 } : { type: 'spring', damping: 32, stiffness: 300 }
         }
         drag="x"
         dragControls={drawerDragControls}
@@ -1399,11 +1400,7 @@ export default function SubmitNewsModalCorporate({
             <div>
               <label className={LABEL}>Select Payment Method</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {payTab(
-                  'paypal',
-                  'PayPal',
-                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
-                )}
+                {payTab('paypal', 'PayPal', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
                 {payTab(
                   'card',
                   'Credit/Debit Card',
@@ -1447,12 +1444,18 @@ export default function SubmitNewsModalCorporate({
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-blue-400">
-                      {payMethod === 'card' ? 'Credit/Debit Card' : 'PayPal Payment'}
+                      {plan === 'test'
+                        ? 'PayPal Sandbox Test'
+                        : payMethod === 'card'
+                          ? 'Credit/Debit Card'
+                          : 'PayPal Payment'}
                     </h4>
                     <p className="text-xs text-gray-400">
-                      {payMethod === 'card'
-                        ? 'Pay securely by credit or debit card through PayPal.'
-                        : 'Complete payment securely with PayPal.'}
+                      {plan === 'test'
+                        ? 'Use your PayPal sandbox account. No live money or published article.'
+                        : payMethod === 'card'
+                          ? 'Pay securely by credit or debit card through PayPal.'
+                          : 'Complete payment securely with PayPal.'}
                     </p>
                   </div>
                 </div>
@@ -1489,6 +1492,7 @@ export default function SubmitNewsModalCorporate({
                       tier={`${subType}_${plan}`}
                       email={userEmail.trim()}
                       cardOnly={payMethod === 'card'}
+                      sandboxMode={plan === 'test'}
                       onBeforeCryptoRedirect={() => saveNewsCryptoDraft()}
                       onSuccess={(details: any) => {
                         const isCryptoPayment =
@@ -1573,12 +1577,28 @@ export default function SubmitNewsModalCorporate({
         {modalStep === 4 && (
           <div className="text-center py-8 space-y-4">
             <div className="text-5xl">✅</div>
-            <h3 className="text-2xl font-semibold text-white">Story submitted for moderation!</h3>
-            <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
-              Thank you! Your submission is now in our moderation queue and marked as{' '}
-              <b>“Pending review”</b>. Our editors verify the payment and accuracy, and you will
-              receive an email as soon as it goes live!
-            </p>
+            {plan === 'test' ? (
+              <>
+                <h3 className="text-2xl font-semibold text-white">
+                  PayPal sandbox test completed!
+                </h3>
+                <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
+                  The sandbox payment was verified and the News Hub submission response completed
+                  successfully. No live charge was made and no article was published.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-semibold text-white">
+                  Story submitted for moderation!
+                </h3>
+                <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
+                  Thank you! Your submission is now in our moderation queue and marked as{' '}
+                  <b>“Pending review”</b>. Our editors verify the payment and accuracy, and you will
+                  receive an email as soon as it goes live!
+                </p>
+              </>
+            )}
             <button onClick={closeDrawer} className={BTN_PRIMARY}>
               Back to News Hub
             </button>

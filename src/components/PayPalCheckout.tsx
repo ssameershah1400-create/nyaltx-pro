@@ -12,6 +12,7 @@ interface PayPalCheckoutProps {
   onBeforeCryptoRedirect?: () => void;
   onSuccess?: (details: any) => void | Promise<void>;
   onError?: (error: any) => void;
+  sandboxMode?: boolean;
 }
 
 export default function PayPalCheckout({
@@ -22,6 +23,7 @@ export default function PayPalCheckout({
   onBeforeCryptoRedirect,
   onSuccess,
   onError,
+  sandboxMode = false,
 }: PayPalCheckoutProps) {
   const [processing, setProcessing] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
@@ -41,13 +43,15 @@ export default function PayPalCheckout({
   const handleSuccess = async (details: any) => {
     const processingToast = toast.loading('🔄 Processing your payment...');
     const isCryptoPayment = Boolean(
-      details?.paymentSource === 'paypal_crypto' || details?.payment_source?.crypto,
+      details?.paymentSource === 'paypal_crypto' || details?.payment_source?.crypto
     );
-    
+
     try {
       toast.dismiss(processingToast);
-      toast.success(isCryptoPayment ? '🎉 PayPal crypto payment successful!' : '🎉 PayPal payment successful!');
-      
+      toast.success(
+        isCryptoPayment ? '🎉 PayPal crypto payment successful!' : '🎉 PayPal payment successful!'
+      );
+
       // Set pro status cookie for nyaltxpro purchases
       if (tier.toLowerCase() === 'nyaltxpro' || tier.toLowerCase() === 'nyaltxpro1') {
         document.cookie = 'nyaltx_pro=1; path=/; max-age=31536000'; // 1 year
@@ -81,7 +85,10 @@ export default function PayPalCheckout({
             throw error;
           }
         }
-      } else if (tier.toLowerCase().includes('race-') || ['paddle', 'motor', 'helicopter'].includes(tier.toLowerCase())) {
+      } else if (
+        tier.toLowerCase().includes('race-') ||
+        ['paddle', 'motor', 'helicopter'].includes(tier.toLowerCase())
+      ) {
         const raceToast = toast.loading('🏁 Processing Race to Liberty payment...');
         try {
           // Handle Race to Liberty payments - store PayPal order for these
@@ -166,7 +173,9 @@ export default function PayPalCheckout({
     if (cryptoStatus === 'failed') {
       clearCryptoReturnParams();
       setCryptoCheckoutOpen(true);
-      toast.error('PayPal could not complete the crypto payment. Please try again or choose another payment method.');
+      toast.error(
+        'PayPal could not complete the crypto payment. Please try again or choose another payment method.'
+      );
       return;
     }
 
@@ -209,7 +218,9 @@ export default function PayPalCheckout({
     void verifyCryptoPayment()
       .catch(error => {
         console.error('PayPal crypto return verification failed:', error);
-        toast.error(error instanceof Error ? error.message : 'Could not verify the crypto payment.');
+        toast.error(
+          error instanceof Error ? error.message : 'Could not verify the crypto payment.'
+        );
         processedCryptoOrderRef.current = null;
       })
       .finally(() => setCryptoProcessing(false));
@@ -248,7 +259,9 @@ export default function PayPalCheckout({
       window.location.assign(result.approvalUrl);
     } catch (error) {
       console.error('PayPal crypto checkout could not start:', error);
-      toast.error(error instanceof Error ? error.message : 'Could not start PayPal crypto checkout.');
+      toast.error(
+        error instanceof Error ? error.message : 'Could not start PayPal crypto checkout.'
+      );
       setCryptoProcessing(false);
     } finally {
       cryptoCreateInProgressRef.current = false;
@@ -267,9 +280,14 @@ export default function PayPalCheckout({
   const storePayPalOrder = async (paymentDetails: any) => {
     try {
       const orderData = {
-        type: tier.toLowerCase() === 'nyaltxpro' || tier.toLowerCase() === 'nyaltxpro1' ? 'pro_subscription' : 
-              ['paddle', 'motor', 'helicopter'].includes(tier.toLowerCase()) ? 'race_to_liberty' :
-              (tier.toLowerCase().startsWith('news') || tier.toLowerCase().startsWith('pr')) ? 'news_submission' : 'pro_subscription',
+        type:
+          tier.toLowerCase() === 'nyaltxpro' || tier.toLowerCase() === 'nyaltxpro1'
+            ? 'pro_subscription'
+            : ['paddle', 'motor', 'helicopter'].includes(tier.toLowerCase())
+              ? 'race_to_liberty'
+              : tier.toLowerCase().startsWith('news') || tier.toLowerCase().startsWith('pr')
+                ? 'news_submission'
+                : 'pro_subscription',
         paymentMethod: 'paypal',
         amount: amount,
         currency: 'USD',
@@ -287,9 +305,9 @@ export default function PayPalCheckout({
           paymentSource:
             paymentDetails?.paymentSource === 'paypal_crypto' ||
             paymentDetails?.payment_source?.crypto
-            ? 'paypal_crypto'
-            : 'paypal_checkout'
-        }
+              ? 'paypal_crypto'
+              : 'paypal_checkout',
+        },
       };
 
       const response = await fetch('/api/orders/create', {
@@ -313,10 +331,13 @@ export default function PayPalCheckout({
   };
 
   // Handle token registration after successful payment
-  const handleTokenRegistrationAfterPayment = async (paymentDetails: any, pendingTokenDataString: string) => {
+  const handleTokenRegistrationAfterPayment = async (
+    paymentDetails: any,
+    pendingTokenDataString: string
+  ) => {
     try {
       const tokenData = JSON.parse(pendingTokenDataString);
-      
+
       // Add payment information to the token registration
       const tokenDataWithPayment = {
         ...tokenData,
@@ -324,9 +345,9 @@ export default function PayPalCheckout({
         paymentId: paymentDetails.id,
         paymentAmount: amount,
         paymentCurrency: 'USD',
-        tier: tier
+        tier: tier,
       };
-      
+
       // Register the token via API with payment information
       const response = await fetch('/api/tokens/register', {
         method: 'POST',
@@ -342,12 +363,12 @@ export default function PayPalCheckout({
       }
 
       const result = await response.json();
-      
+
       // Clear pending registration data
       localStorage.removeItem('pendingTokenRegistration');
-      
+
       toast.success('🪙 Token registered successfully!');
-      
+
       // Redirect to success page with token and payment details
       const successUrl = new URL('/dashboard/checkout/success', window.location.origin);
       successUrl.searchParams.set('method', 'paypal');
@@ -355,22 +376,21 @@ export default function PayPalCheckout({
       successUrl.searchParams.set('tokenSymbol', tokenData.tokenSymbol);
       successUrl.searchParams.set('txId', paymentDetails.id);
       successUrl.searchParams.set('regId', result.record.id);
-      
+
       toast.loading('🔄 Redirecting to success page...');
       setTimeout(() => {
         window.location.href = successUrl.toString();
       }, 2000);
-      
     } catch (error) {
       console.error('Token registration after payment failed:', error);
       toast.error('❌ Token registration failed, but payment was successful');
-      
+
       // Still redirect to success page but show error
       const successUrl = new URL('/dashboard/checkout/success', window.location.origin);
       successUrl.searchParams.set('method', 'paypal');
       successUrl.searchParams.set('error', 'registration_failed');
       successUrl.searchParams.set('txId', paymentDetails.id);
-      
+
       toast.loading('🔄 Redirecting to success page...');
       setTimeout(() => {
         window.location.href = successUrl.toString();
@@ -386,21 +406,44 @@ export default function PayPalCheckout({
             <span className="text-2xl">⚠️</span>
           </div>
           <div>
-            <div className="text-yellow-400 font-semibold" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+            <div
+              className="text-yellow-400 font-semibold"
+              style={{
+                fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+              }}
+            >
               PayPal Not Configured
             </div>
-            <div className="text-sm text-gray-300" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+            <div
+              className="text-sm text-gray-300"
+              style={{
+                fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+              }}
+            >
               Payment service unavailable
             </div>
           </div>
         </div>
-        <div className="text-sm text-gray-300 mb-3" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+        <div
+          className="text-sm text-gray-300 mb-3"
+          style={{
+            fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+          }}
+        >
           PayPal payments are not available. Please configure your PayPal Client ID in environment
           variables.
         </div>
-        <div className="text-xs text-gray-400" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-          Add <code className="bg-gray-700/30 px-2 py-1 rounded border border-gray-600/30">NEXT_PUBLIC_PAYPAL_CLIENT_ID</code> to your
-          .env.local file
+        <div
+          className="text-xs text-gray-400"
+          style={{
+            fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+          }}
+        >
+          Add{' '}
+          <code className="bg-gray-700/30 px-2 py-1 rounded border border-gray-600/30">
+            NEXT_PUBLIC_PAYPAL_CLIENT_ID
+          </code>{' '}
+          to your .env.local file
         </div>
       </div>
     );
@@ -423,15 +466,29 @@ export default function PayPalCheckout({
           <span className="text-xl">💳</span>
         </div>
         <div>
-          <div className="text-white font-semibold" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-            {cardOnly ? 'Credit/Debit Card' : 'PayPal Payment'}
+          <div
+            className="text-white font-semibold"
+            style={{
+              fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+            }}
+          >
+            {sandboxMode
+              ? 'PayPal Sandbox Test'
+              : cardOnly
+                ? 'Credit/Debit Card'
+                : 'PayPal Payment'}
           </div>
-          <div className="text-sm text-gray-400" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+          <div
+            className="text-sm text-gray-400"
+            style={{
+              fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+            }}
+          >
             {cardOnly ? 'Secure card payment processed by PayPal' : 'Secure payment with PayPal'}
           </div>
         </div>
       </div>
-      
+
       <PayPalScriptProvider options={paypalScriptOptions}>
         <PayPalButtons
           style={{
@@ -444,7 +501,7 @@ export default function PayPalCheckout({
           createOrder={async (_, actions) => {
             setProcessing(true);
             const orderToast = toast.loading('💳 Creating PayPal order...');
-            
+
             try {
               const order = await actions.order.create({
                 intent: 'CAPTURE',
@@ -464,7 +521,7 @@ export default function PayPalCheckout({
                   user_action: 'PAY_NOW',
                 },
               });
-              
+
               toast.dismiss(orderToast);
               toast.success('✅ PayPal order created! Complete your payment.');
               return order;
@@ -476,13 +533,13 @@ export default function PayPalCheckout({
           }}
           onApprove={async (_, actions) => {
             const captureToast = toast.loading('💰 Capturing your payment...');
-            
+
             try {
               const details = await actions.order?.capture();
               console.log('Payment Approved: ', details);
 
               toast.dismiss(captureToast);
-              
+
               if (details?.status === 'COMPLETED') {
                 await handleSuccess(details);
               } else {
@@ -507,20 +564,20 @@ export default function PayPalCheckout({
           }}
           onCancel={() => {
             console.log('Payment cancelled by user');
-            toast('⚠️ Payment cancelled by user', { 
+            toast('⚠️ Payment cancelled by user', {
               icon: '❌',
               style: {
                 background: '#374151',
                 color: '#f9fafb',
                 border: '1px solid #6b7280',
-              }
+              },
             });
             setProcessing(false);
           }}
           disabled={processing}
         />
 
-        {!cardOnly && (
+        {!cardOnly && !sandboxMode && (
           <div className="mt-4 border-t border-gray-700/50 pt-4">
             <button
               type="button"
@@ -579,7 +636,12 @@ export default function PayPalCheckout({
         {processing && (
           <div className="mt-4 flex items-center justify-center gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm text-blue-300" style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+            <span
+              className="text-sm text-blue-300"
+              style={{
+                fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+              }}
+            >
               Processing payment...
             </span>
           </div>

@@ -25,7 +25,12 @@ interface NewsPublishingRouteProps {
 
 export default async function NewsPublishingRoute({ searchParams }: NewsPublishingRouteProps) {
   const { modal, plan } = await searchParams;
-  const testPlanEnabled = process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN === 'true';
+  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim().toLowerCase() || '';
+  const paypalEnvironment =
+    process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase() ||
+    (process.env.NODE_ENV !== 'production' || clientId.startsWith('sb-') ? 'sandbox' : 'live');
+  const testPlanEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN === 'true' || paypalEnvironment === 'sandbox';
   const initialPlan =
     plan === 'slider' ? 'slider' : plan === 'test' && testPlanEnabled ? 'test' : 'feed';
 

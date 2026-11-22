@@ -6,8 +6,6 @@ import { findUsablePromoCode } from '@/lib/newsPromoCodes';
 import { calculateNewsPrice } from '@/lib/newsPricing';
 import { getNewshubCategories } from '@/lib/newshubInitialData';
 
-const NEWS_TEST_PLAN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN === 'true';
-
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
@@ -31,7 +29,16 @@ export async function POST(req: NextRequest) {
       walletAddress,
       paymentStatus = 'completed',
       planName,
+      isTest = false,
     } = data;
+
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim().toLowerCase() || '';
+    const paypalEnvironment =
+      process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase() ||
+      (process.env.NODE_ENV !== 'production' || clientId.startsWith('sb-') ? 'sandbox' : 'live');
+    const testPlanEnabled =
+      process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN === 'true' || paypalEnvironment === 'sandbox';
+    const isSandboxTest = Boolean(isTest) && plan === 'test';
 
     if (!['paypal', 'usdc', 'nyax'].includes(paymentMethod)) {
       return NextResponse.json(
@@ -52,9 +59,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (Boolean(data.isTest) || ['test', 'testnet'].includes(paymentStatus)) {
+    if (isSandboxTest) {
+      if (!testPlanEnabled || paypalEnvironment !== 'sandbox') {
+        return NextResponse.json(
+          {
+            error:
+              'PayPal sandbox testing is only available while the app uses sandbox credentials.',
+          },
+          { status: 400 }
+        );
+      }
+      if (paymentMethod !== 'paypal') {
+        return NextResponse.json(
+          { error: 'The News Hub sandbox test must be paid with PayPal.' },
+          { status: 400 }
+        );
+      }
+    } else if (['test', 'testnet'].includes(paymentStatus)) {
       return NextResponse.json(
-        { error: 'Test payments are disabled for news submissions.' },
+        { error: 'Test payments are disabled outside the PayPal sandbox test plan.' },
         { status: 400 }
       );
     }
@@ -64,7 +87,7 @@ export async function POST(req: NextRequest) {
         ? 99
         : plan === 'slider' || plan === 'prem'
           ? 199
-          : plan === 'test' && NEWS_TEST_PLAN_ENABLED
+          : plan === 'test' && testPlanEnabled
             ? 1
             : null;
     if (planPrice === null) {
@@ -180,6 +203,16 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    if (isSandboxTest) {
+      return NextResponse.json({
+        success: true,
+        test: true,
+        paymentVerified: true,
+        paymentId: paymentId?.trim() || null,
+        message: 'PayPal sandbox checkout test completed successfully. No article was published.',
+      });
     }
 
     const db = await getDb();

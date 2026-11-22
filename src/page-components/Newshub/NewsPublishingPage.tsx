@@ -51,6 +51,20 @@ const plans: {
   },
 ];
 
+const sandboxPlan: (typeof plans)[number] = {
+  id: 'test',
+  number: '03',
+  label: 'PayPal Sandbox',
+  name: 'PayPal Checkout Test',
+  price: '$1',
+  description: 'Test the complete News Hub submission and PayPal sandbox checkout flow.',
+  features: [
+    'Use PayPal sandbox credentials',
+    'No live charges or published article',
+    'Verifies the $1 checkout and submission response',
+  ],
+};
+
 export default function NewsPublishingPage({
   openModalOnLoad = false,
   initialPlan = 'feed',
@@ -62,6 +76,7 @@ export default function NewsPublishingPage({
 }) {
   const [selectedPlan, setSelectedPlan] = useState<PublishingPlan>(initialPlan);
   const [modalOpen, setModalOpen] = useState(openModalOnLoad);
+  const displayedPlans = enableTestPlan ? [...plans, sandboxPlan] : plans;
 
   useEffect(() => {
     const hasCryptoReturn = new URLSearchParams(window.location.search).has('paypalCryptoStatus');
@@ -211,7 +226,7 @@ export default function NewsPublishingPage({
             launches and industry updates.
           </p>
           <div className="nps-plans">
-            {plans.map(plan => (
+            {displayedPlans.map(plan => (
               <div className="nps-plan-frame" key={plan.id}>
                 {plan.featured && (
                   <>
@@ -245,7 +260,11 @@ export default function NewsPublishingPage({
                       onClick={() => openSubmitModal(plan.id)}
                       type="button"
                     >
-                      {plan.id === 'feed' ? 'Publish Your News — $99' : 'Get Featured — $199'}
+                      {plan.id === 'feed'
+                        ? 'Publish Your News — $99'
+                        : plan.id === 'slider'
+                          ? 'Get Featured — $199'
+                          : 'Test PayPal Sandbox — $1'}
                     </button>
                     <a className="nps-btn nps-btn-outline" href="https://www.nyaltx.pro/news-hub">
                       View News Hub
@@ -257,7 +276,6 @@ export default function NewsPublishingPage({
           </div>
         </div>
       </section>
-
 
       {modalOpen && (
         <SubmitNewsModal
