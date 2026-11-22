@@ -32,9 +32,6 @@ export default function PayPalCheckout({
   const [verificationStatus, setVerificationStatus] = useState<
     'checking' | 'ready' | 'unavailable'
   >(requireServerVerification ? 'checking' : 'ready');
-  const [verificationIssue, setVerificationIssue] = useState<
-    'configuration' | 'credentials' | 'provider'
-  >('provider');
   const [readinessAttempt, setReadinessAttempt] = useState(0);
   const [cryptoCheckoutOpen, setCryptoCheckoutOpen] = useState(false);
   const [cryptoGivenName, setCryptoGivenName] = useState('');
@@ -52,7 +49,6 @@ export default function PayPalCheckout({
   useEffect(() => {
     if (!requireServerVerification) return;
     if (!isPayPalConfigured) {
-      setVerificationIssue('configuration');
       setVerificationStatus('unavailable');
       return;
     }
@@ -64,21 +60,15 @@ export default function PayPalCheckout({
       signal: controller.signal,
     })
       .then(async response => {
-        const result: {
-          ready?: boolean;
-          reason?: 'configuration' | 'credentials' | 'provider';
-        } = await response.json();
+        const result: { ready?: boolean } = await response.json();
         if (!response.ok || result.ready !== true) {
-          setVerificationIssue(result.reason ?? 'provider');
-          setVerificationStatus('unavailable');
-          return;
+          throw new Error('PayPal server verification is unavailable.');
         }
         setVerificationStatus('ready');
       })
       .catch(error => {
         if (!controller.signal.aborted) {
           console.error('PayPal server verification readiness check failed:', error);
-          setVerificationIssue('provider');
           setVerificationStatus('unavailable');
         }
       });
@@ -485,13 +475,9 @@ export default function PayPalCheckout({
           <p className="text-sm text-amber-200" role="status">
             {verificationStatus === 'checking'
               ? 'Checking secure payment verification...'
-              : verificationIssue === 'configuration'
-                ? 'PayPal server credentials or environment are not configured. No payment has been taken.'
-                : verificationIssue === 'credentials'
-                  ? 'PayPal rejected the server credentials for this environment. No payment has been taken.'
-                  : 'PayPal is temporarily unavailable for secure payment verification. No payment has been taken.'}
+              : 'PayPal is temporarily unavailable for secure payment verification. No payment has been taken.'}
           </p>
-          {verificationStatus === 'unavailable' && verificationIssue === 'provider' && (
+          {verificationStatus === 'unavailable' && (
             <button
               type="button"
               onClick={() => setReadinessAttempt(attempt => attempt + 1)}

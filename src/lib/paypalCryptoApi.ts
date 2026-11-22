@@ -42,11 +42,7 @@ export async function getPayPalCryptoAccessToken() {
     throw new PayPalCryptoConfigurationError();
   }
 
-  const configuredEnvironment = process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase();
-  const environment =
-    configuredEnvironment === 'production' || configuredEnvironment === 'prod'
-      ? 'live'
-      : configuredEnvironment;
+  const environment = process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase();
   if (environment && environment !== 'sandbox' && environment !== 'live') {
     throw new PayPalCryptoConfigurationError(
       'Invalid PayPal environment. Set PAYPAL_ENVIRONMENT to sandbox or live.',
