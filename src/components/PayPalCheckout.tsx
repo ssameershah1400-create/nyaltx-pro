@@ -414,8 +414,11 @@ export default function PayPalCheckout({
   };
 
   return (
-    <div className="w-full rounded-xl border border-gray-700/70 bg-gray-800 p-4 shadow-xl">
-      <div className="flex items-center gap-3 mb-4">
+    <div
+      className="paypal-checkout w-full rounded-xl border border-gray-700/70 bg-gray-800 p-4 shadow-xl"
+      aria-busy={processing}
+    >
+      <div className="mb-4 flex flex-col items-center justify-center gap-2 text-center">
         <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/30">
           <span className="text-xl">💳</span>
         </div>
@@ -582,6 +585,11 @@ export default function PayPalCheckout({
           </div>
         )}
       </PayPalScriptProvider>
+      <style jsx global>{`
+        .paypal-checkout :global(.paypal-buttons-disabled) {
+          opacity: 1 !important;
+        }
+      `}</style>
     </div>
   );
 }

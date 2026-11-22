@@ -534,7 +534,7 @@ function LandingNewsletterSection() {
 
   return (
     <section
-      className="border-t border-white/10 bg-black/40 px-6 py-16 md:py-20"
+      className="border-t border-white/10 px-6 py-16 md:py-20"
       aria-labelledby="landing-newsletter-title"
     >
       <div className="mx-auto max-w-3xl text-center">
@@ -564,7 +564,7 @@ function LandingNewsletterSection() {
             onClick={event => event.stopPropagation()}
             type="submit"
             disabled={isSubmitting}
-            className="group mr-2 flex shrink-0 items-center gap-1.5 rounded-full bg-cyan-500/90 px-4 py-3 text-sm font-semibold tracking-tight text-white transition-colors hover:bg-cyan-400 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+            className="group mr-[7px] flex shrink-0 items-center gap-1.5 rounded-full bg-cyan-500/90 px-4 py-3 text-sm font-semibold tracking-tight text-white transition-colors hover:bg-cyan-400 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span>{isSubmitting ? 'Subscribing...' : 'Subscribe'}</span>
             <FiArrowRight
