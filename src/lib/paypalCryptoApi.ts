@@ -2,7 +2,6 @@ import 'server-only';
 import { getPayPalEnvironment } from '@/lib/paypalEnvironment';
 
 const INVALID_CLIENT_ID_VALUES = new Set(['', 'test', 'your-paypal-client-id-here']);
-let warnedAboutLegacySecret = false;
 
 export class PayPalCryptoConfigurationError extends Error {
   constructor(
@@ -28,16 +27,7 @@ export class PayPalCryptoAuthenticationError extends Error {
 
 export async function getPayPalCryptoAccessToken() {
   const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() || '';
-  const serverSecret = process.env.PAYPAL_CLIENT_SECRET?.trim() || '';
-  const legacySecret = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_SECRET?.trim() || '';
-  const clientSecret = serverSecret || legacySecret;
-
-  if (!serverSecret && legacySecret && !warnedAboutLegacySecret) {
-    console.warn(
-      'PayPal crypto checkout is using NEXT_PUBLIC_PAYPAL_CLIENT_SECRET. Move it to PAYPAL_CLIENT_SECRET.',
-    );
-    warnedAboutLegacySecret = true;
-  }
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim() || '';
 
   if (INVALID_CLIENT_ID_VALUES.has(clientId) || !clientSecret || clientSecret === 'test') {
     throw new PayPalCryptoConfigurationError();

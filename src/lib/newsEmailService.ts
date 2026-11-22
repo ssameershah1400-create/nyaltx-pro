@@ -86,8 +86,7 @@ export async function verifyNewsPayment(params: VerifyPaymentParams): Promise<Pa
     }
 
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim();
-    const clientSecret =
-      process.env.PAYPAL_CLIENT_SECRET?.trim() || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_SECRET?.trim();
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim();
 
     // If PayPal API credentials exist on backend, verify directly with PayPal v2 API
     if (clientId && clientSecret && clientId !== 'test' && clientId !== 'your-paypal-client-id-here') {
