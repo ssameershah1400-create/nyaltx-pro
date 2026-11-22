@@ -9,6 +9,8 @@ interface PayPalCheckoutProps {
   tier: string;
   email?: string;
   cardOnly?: boolean;
+  requireServerVerification?: boolean;
+  onBeforePayment?: () => void;
   onBeforeCryptoRedirect?: () => void;
   onSuccess?: (details: any) => void | Promise<void>;
   onError?: (error: any) => void;
@@ -19,12 +21,18 @@ export default function PayPalCheckout({
   tier,
   email,
   cardOnly = false,
+  requireServerVerification = false,
+  onBeforePayment,
   onBeforeCryptoRedirect,
   onSuccess,
   onError,
 }: PayPalCheckoutProps) {
   const [processing, setProcessing] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<
+    'checking' | 'ready' | 'unavailable'
+  >(requireServerVerification ? 'checking' : 'ready');
+  const [readinessAttempt, setReadinessAttempt] = useState(0);
   const [cryptoCheckoutOpen, setCryptoCheckoutOpen] = useState(false);
   const [cryptoGivenName, setCryptoGivenName] = useState('');
   const [cryptoSurname, setCryptoSurname] = useState('');
@@ -37,6 +45,36 @@ export default function PayPalCheckout({
     process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID &&
     process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'your-paypal-client-id-here' &&
     process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'test';
+
+  useEffect(() => {
+    if (!requireServerVerification) return;
+    if (!isPayPalConfigured) {
+      setVerificationStatus('unavailable');
+      return;
+    }
+
+    const controller = new AbortController();
+    setVerificationStatus('checking');
+    fetch('/api/news/paypal/readiness', {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async response => {
+        const result: { ready?: boolean } = await response.json();
+        if (!response.ok || result.ready !== true) {
+          throw new Error('PayPal server verification is unavailable.');
+        }
+        setVerificationStatus('ready');
+      })
+      .catch(error => {
+        if (!controller.signal.aborted) {
+          console.error('PayPal server verification readiness check failed:', error);
+          setVerificationStatus('unavailable');
+        }
+      });
+
+    return () => controller.abort();
+  }, [isPayPalConfigured, readinessAttempt, requireServerVerification]);
 
   const handleSuccess = async (details: any) => {
     const processingToast = toast.loading('🔄 Processing your payment...');
@@ -415,7 +453,7 @@ export default function PayPalCheckout({
 
   return (
     <div
-      className="paypal-checkout w-full rounded-xl border border-gray-700/70 bg-gray-800 p-4 shadow-xl"
+      className="paypal-checkout mx-auto w-full max-w-xl rounded-xl border border-gray-700/70 bg-gray-800 p-4 shadow-xl"
       aria-busy={processing}
     >
       <div className="mb-4 flex flex-col items-center justify-center gap-2 text-center">
@@ -432,6 +470,24 @@ export default function PayPalCheckout({
         </div>
       </div>
       
+      {requireServerVerification && verificationStatus !== 'ready' ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+          <p className="text-sm text-amber-200" role="status">
+            {verificationStatus === 'checking'
+              ? 'Checking secure payment verification...'
+              : 'PayPal is temporarily unavailable for secure payment verification. No payment has been taken.'}
+          </p>
+          {verificationStatus === 'unavailable' && (
+            <button
+              type="button"
+              onClick={() => setReadinessAttempt(attempt => attempt + 1)}
+              className="mt-3 rounded-lg border border-amber-300/40 px-4 py-2 text-sm text-amber-100 hover:bg-amber-300/10"
+            >
+              Check again
+            </button>
+          )}
+        </div>
+      ) : (
       <PayPalScriptProvider options={paypalScriptOptions}>
         <PayPalButtons
           style={{
@@ -446,6 +502,7 @@ export default function PayPalCheckout({
             const orderToast = toast.loading('💳 Creating PayPal order...');
             
             try {
+              onBeforePayment?.();
               const order = await actions.order.create({
                 intent: 'CAPTURE',
                 purchase_units: [
@@ -585,6 +642,7 @@ export default function PayPalCheckout({
           </div>
         )}
       </PayPalScriptProvider>
+      )}
       <style jsx global>{`
         .paypal-checkout :global(.paypal-buttons-disabled) {
           opacity: 1 !important;

@@ -65,6 +65,7 @@ export async function getPayPalCryptoAccessToken() {
     },
     body: 'grant_type=client_credentials',
     cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
   });
 
   const tokenData: { access_token?: string; error?: string; error_description?: string } =
