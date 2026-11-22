@@ -41,7 +41,7 @@ export default function PayPalCheckout({
     paypalClientId !== '' &&
     paypalClientId !== 'your-paypal-client-id-here' &&
     paypalClientId !== 'test' &&
-    (process.env.NODE_ENV === 'production' ? !isSandboxClient : isSandboxClient);
+    (process.env.NODE_ENV !== 'production' || !isSandboxClient);
 
   const handleSuccess = async (details: any) => {
     const processingToast = toast.loading('🔄 Processing your payment...');
