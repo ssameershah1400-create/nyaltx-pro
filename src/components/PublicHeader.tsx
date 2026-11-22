@@ -239,7 +239,7 @@ export default function PublicHeader() {
             {brandLabel.replace(/\s+pro$/i, '')}
           </Link>
 
-          <div className="hidden flex-1 items-center justify-center gap-1 md:flex">
+          <div className="hidden flex-1 items-center justify-center gap-1 lg:flex">
             {primaryLinks.map(link => (
               <NavLink key={link.href} href={link.href} label={link.label} />
             ))}
@@ -280,7 +280,7 @@ export default function PublicHeader() {
             })}
           </div>
 
-          <div className="hidden shrink-0 md:block">
+          <div className="hidden shrink-0 lg:block">
             <SimpleUnifiedWalletButton />
           </div>
 
@@ -289,7 +289,7 @@ export default function PublicHeader() {
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(open => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/90 transition hover:bg-white/10 md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/90 transition hover:bg-white/10 lg:hidden"
           >
             {mobileMenuOpen ? <FaTimes className="h-4 w-4" /> : <FaBars className="h-4 w-4" />}
           </button>
@@ -300,7 +300,7 @@ export default function PublicHeader() {
           animate={{ height: mobileMenuOpen ? 'auto' : 0, opacity: mobileMenuOpen ? 1 : 0 }}
           transition={{ duration: 0.25, ease: 'easeInOut' }}
           aria-hidden={!mobileMenuOpen}
-          className="overflow-hidden md:hidden"
+          className="overflow-hidden lg:hidden"
         >
           <div className="border-t border-white/10 px-4 pb-4 pt-3">
             <div className="space-y-1">

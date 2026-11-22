@@ -136,6 +136,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (paymentMethod === 'paypal' && paymentId) {
+      const existingDb = await getDb();
+      const existingSubmission = await existingDb.collection('corporate_news').findOne({
+        paymentMethod: 'paypal',
+        paymentId: paymentId.trim(),
+        isPaid: true,
+        paymentVerified: true,
+      });
+      if (existingSubmission) {
+        const existingOrderId =
+          typeof existingSubmission.orderId === 'string'
+            ? existingSubmission.orderId
+            : `order_news_${existingSubmission._id}`;
+        return NextResponse.json({
+          success: true,
+          id: existingSubmission._id.toString(),
+          slug: existingSubmission.slug,
+          orderId: existingOrderId,
+          orderRecorded: true,
+          paymentVerified: true,
+          emailSent: Boolean(existingSubmission.paymentConfirmationEmailSent),
+          message: 'This paid story is already submitted and pending admin approval.',
+        });
+      }
+    }
+
     // 1. Verify Payment on Backend before proceeding
     const paymentVerification = await verifyNewsPayment({
       paymentMethod,

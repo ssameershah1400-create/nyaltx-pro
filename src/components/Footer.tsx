@@ -19,6 +19,7 @@ const NEWSLETTER_EXAMPLES = [
 const Footer = () => {
   const pathname = usePathname();
   const hideNewsletterCopy = pathname === '/newshub/submit';
+  const hideHomeNewsletterDetails = pathname === '/';
   const { content: footerContent, loading, error } = useFooterContent();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -106,14 +107,15 @@ const Footer = () => {
                   className="h-8 w-8 shrink-0 object-contain"
                 />
                 <h1 className="text-2xl font-medium">
-                  {footerContent?.branding?.title || "NYALTX"}
+                  {footerContent?.branding?.title || 'NYALTX'}
                 </h1>
               </div>
               {footerContent?.branding?.subtitle && (
                 <h2 className="text-xl font-medium mb-4">{footerContent.branding.subtitle}</h2>
               )}
               <h3 className="text-lg font-medium mb-4">
-                {footerContent?.branding?.description || "The Web3 Community for Creativity, Culture, and Fun."}
+                {footerContent?.branding?.description ||
+                  'The Web3 Community for Creativity, Culture, and Fun.'}
               </h3>
 
               {/* Newsletter Signup */}
@@ -128,16 +130,18 @@ const Footer = () => {
                 )}
                 <p className="max-w-lg text-lg leading-relaxed text-white sm:text-xl">
                   <strong className="font-semibold">
-                    {footerContent?.newsletter?.title || "Join Our Community"}
+                    {footerContent?.newsletter?.title || 'Join Our Community'}
                   </strong>{' '}
-                  {!hideNewsletterCopy && (
+                  {!hideNewsletterCopy && !hideHomeNewsletterDetails && (
                     <span className="text-gray-300">
                       {footerContent?.newsletter?.description ||
                         'Get exclusive crypto insights, market updates, and early access to new features.'}
                     </span>
                   )}
                 </p>
-                {!hideNewsletterCopy && <NewsletterPrompt examples={NEWSLETTER_EXAMPLES} />}
+                {!hideNewsletterCopy && !hideHomeNewsletterDetails && (
+                  <NewsletterPrompt examples={NEWSLETTER_EXAMPLES} />
+                )}
                 <form onSubmit={handleNewsletterSignup} className="space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <input
@@ -154,7 +158,9 @@ const Footer = () => {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       aria-label="Email address"
-                      placeholder={footerContent?.newsletter?.placeholder || "Enter your email address"}
+                      placeholder={
+                        footerContent?.newsletter?.placeholder || 'Enter your email address'
+                      }
                       className="min-w-0 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 transition-all duration-300 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                       required
                       disabled={isSubmitting}
@@ -165,17 +171,20 @@ const Footer = () => {
                     disabled={isSubmitting}
                     className="w-full rounded-full border border-cyan-300/50 py-2.5 text-sm font-medium transition-colors hover:bg-cyan-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Signing Up...' : (footerContent?.newsletter?.buttonText || 'Join Community')}
+                    {isSubmitting
+                      ? 'Signing Up...'
+                      : footerContent?.newsletter?.buttonText || 'Join Community'}
                   </button>
                 </form>
 
                 {/* Message Display */}
                 {message && (
                   <div
-                    className={`mt-3 p-3 rounded-lg text-sm ${messageType === 'success'
-                      ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-                      : 'bg-red-500/20 border border-red-500/30 text-red-400'
-                      }`}
+                    className={`mt-3 p-3 rounded-lg text-sm ${
+                      messageType === 'success'
+                        ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+                        : 'bg-red-500/20 border border-red-500/30 text-red-400'
+                    }`}
                   >
                     {message}
                   </div>
@@ -196,10 +205,11 @@ const Footer = () => {
           {/* Right column */}
           <div className="xl:col-span-1">
             <h3 className="text-lg font-medium mb-4">
-              {footerContent?.social?.title || "Follow us on social media!"}
+              {footerContent?.social?.title || 'Follow us on social media!'}
             </h3>
             <p className="text-sm mb-6">
-              {footerContent?.social?.description || "Follow us on social media and find all you need to know about crypto world!"}
+              {footerContent?.social?.description ||
+                'Follow us on social media and find all you need to know about crypto world!'}
             </p>
 
             {/* Social media icons */}
@@ -264,8 +274,7 @@ const Footer = () => {
           {/* Disclaimer */}
           <div className="text-xs text-justify text-gray-400/90 mb-6 max-w-full mx-auto px-2 sm:px-4 leading-relaxed">
             {footerContent?.legal?.disclaimer ||
-              "All content available on our website, on hyperlinked websites, and on applications, forums, blogs, social media accounts and other platforms associated with Nyaltx is intended solely to provide you with general information. We make no warranties of any kind with respect to our content, including, but not limited to, the accuracy and currency of the information. None of the content we provide should be construed as financial, legal or any other type of advice on which you may rely. Nothing on our Site should be considered an invitation or offer to take any action."
-            }
+              'All content available on our website, on hyperlinked websites, and on applications, forums, blogs, social media accounts and other platforms associated with Nyaltx is intended solely to provide you with general information. We make no warranties of any kind with respect to our content, including, but not limited to, the accuracy and currency of the information. None of the content we provide should be construed as financial, legal or any other type of advice on which you may rely. Nothing on our Site should be considered an invitation or offer to take any action.'}
           </div>
 
           {/* Bottom section with links and app store badges */}
@@ -315,7 +324,7 @@ const Footer = () => {
               </div>
 
               <div className="text-xs text-gray-400/90 text-center px-2 max-w-full break-words">
-                {footerContent?.legal?.copyright || "© 2025 Corporate Roadshow,Inc. | Nyaltx.pro"}
+                {footerContent?.legal?.copyright || '© 2025 Corporate Roadshow,Inc. | Nyaltx.pro'}
               </div>
             </div>
           </div>
