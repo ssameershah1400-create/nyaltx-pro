@@ -704,7 +704,11 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
                     leadArticle && (
                       <ArticleLink
                         article={leadArticle}
-                        className="nh-lead-story"
+                        className={
+                          leadArticle.isSyndicated
+                            ? 'nh-lead-story'
+                            : 'nh-lead-story nh-lead-story-sponsored'
+                        }
                         ariaLabel={`Read ${leadArticle.title}`}
                       >
                         {articleThumbnail(leadArticle) ? (
@@ -1145,6 +1149,7 @@ const STYLES = `
   .nh-feature-primary .nh-slider { margin: 0; border-radius: 12px; }
   .nh-lead-story { position: relative; display: block; overflow: hidden; border: 1px solid var(--nh-border); border-radius: 12px; background: #090f18; color: #fff; text-decoration: none; }
   .nh-lead-story > img, .nh-lead-story-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .nh-lead-story-sponsored > img { object-fit: contain; }
   .nh-lead-story-fallback { display: block; }
   .nh-lead-shade { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(0,0,0,.03) 25%,rgba(0,0,0,.82) 100%); }
   .nh-lead-copy { position: absolute; right: 0; bottom: 0; left: 0; z-index: 1; padding: 20px 22px; }
