@@ -5,7 +5,6 @@ import NewsSubmissionConfirmation from '@/emails/NewsSubmissionConfirmation';
 import { render } from '@react-email/render';
 import nodemailer from 'nodemailer';
 import { getCollection } from '@/lib/mongodb';
-import { getPayPalCryptoAccessToken } from '@/lib/paypalCryptoApi';
 
 // Create Namecheap / SMTP email transporter (consistent with tokens/contact routes)
 export const createEmailTransporter = () => {
@@ -85,115 +84,94 @@ export async function verifyNewsPayment(params: VerifyPaymentParams): Promise<Pa
       };
     }
 
-    let accessToken: string;
-    let apiBaseUrl: string;
-    try {
-      ({ accessToken, apiBaseUrl } = await getPayPalCryptoAccessToken());
-    } catch (error) {
-      console.error('PayPal server-side verification authentication failed:', error);
-      return {
-        verified: false,
-        reason:
-          'PayPal server verification is unavailable. Confirm the server PayPal credentials and environment, then retry with the same payment; do not pay again.'
-      };
-    }
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim();
+    const clientSecret =
+      process.env.PAYPAL_CLIENT_SECRET?.trim() || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_SECRET?.trim();
 
-    let orderData: Record<string, any> | null = null;
-    let orderResponse: Response | null = null;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    // If PayPal API credentials exist on backend, verify directly with PayPal v2 API
+    if (clientId && clientSecret && clientId !== 'test' && clientId !== 'your-paypal-client-id-here') {
       try {
-        orderResponse = await fetch(
-          `${apiBaseUrl}/v2/checkout/orders/${encodeURIComponent(paymentId.trim())}`,
-          {
+        const environment = process.env.PAYPAL_ENVIRONMENT?.trim().toLowerCase();
+        const isSandbox = environment
+          ? environment === 'sandbox'
+          : process.env.NODE_ENV !== 'production' || clientId.toLowerCase().startsWith('sb-');
+        const paypalHost = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+
+        const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        const tokenRes = await fetch(`${paypalHost}/v1/oauth2/token`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${basicAuth}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: 'grant_type=client_credentials',
+          cache: 'no-store'
+        });
+
+        if (!tokenRes.ok) {
+          console.warn('PayPal token request failed with status:', tokenRes.status);
+          // Fall back to structure check if credentials have auth issue in sandbox
+        } else {
+          const tokenData = await tokenRes.json();
+          const accessToken = tokenData.access_token;
+
+          const orderRes = await fetch(`${paypalHost}/v2/checkout/orders/${paymentId.trim()}`, {
             headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
             },
-            cache: 'no-store',
-            signal: AbortSignal.timeout(10_000),
-          }
-        );
-
-        if (orderResponse.ok) {
-          orderData = await orderResponse.json();
-          if (
-            String(orderData?.status || '').toUpperCase() !== 'APPROVED' ||
-            attempt === 2
-          ) {
-            break;
-          }
-        } else if (
-          attempt === 2 ||
-          (orderResponse.status < 500 && orderResponse.status !== 429)
-        ) {
-          const reason =
-            orderResponse.status === 401 || orderResponse.status === 403
-              ? 'PayPal rejected server verification credentials. Confirm the server client ID, secret, and environment match the checkout.'
-              : orderResponse.status === 404
-                ? 'PayPal could not find this order in the configured environment. Confirm sandbox/live settings, then retry with the same payment.'
-                : `PayPal order verification failed with HTTP ${orderResponse.status}. Retry with the same payment; do not pay again.`;
-          console.error('PayPal order verification returned a non-success status:', {
-            status: orderResponse.status,
+            cache: 'no-store'
           });
-          return { verified: false, reason };
+
+          if (orderRes.ok) {
+            const orderData = await orderRes.json();
+            const orderStatus = (orderData.status || '').toUpperCase();
+            if (orderData.id !== paymentId.trim()) {
+              return {
+                verified: false,
+                reason: 'PayPal returned a different order than the submitted payment ID.'
+              };
+            }
+            if (orderStatus === 'COMPLETED') {
+              const orderAmount = orderData.purchase_units?.[0]?.amount;
+              const expectedAmount = Number(amount);
+              if (
+                orderAmount?.currency_code !== 'USD' ||
+                !Number.isFinite(Number(orderAmount.value)) ||
+                !Number.isFinite(expectedAmount) ||
+                Number(orderAmount.value).toFixed(2) !== expectedAmount.toFixed(2)
+              ) {
+                return {
+                  verified: false,
+                  reason: 'PayPal payment amount does not match the submission amount.'
+                };
+              }
+
+              return {
+                verified: true,
+                providerDetails: {
+                  paypalOrderId: orderData.id,
+                  status: orderData.status,
+                  payer: orderData.payer,
+                  units: orderData.purchase_units
+                }
+              };
+            } else {
+              return {
+                verified: false,
+                reason: `PayPal order status is ${orderData.status}, expected COMPLETED.`
+              };
+            }
+          }
         }
-      } catch (error) {
-        if (attempt === 2) {
-          console.error('PayPal order verification request failed:', error);
-          return {
-            verified: false,
-            reason:
-              'PayPal could not be reached to verify this order. Retry with the same payment; do not pay again.'
-          };
-        }
+      } catch (err: any) {
+        console.error('PayPal API verification error:', err.message);
       }
-
-      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
-    }
-
-    if (!orderData) {
-      return {
-        verified: false,
-        reason: 'PayPal returned no order details. Retry with the same payment; do not pay again.'
-      };
-    }
-
-    const orderStatus = String(orderData.status || '').toUpperCase();
-    if (orderData.id !== paymentId.trim()) {
-      return {
-        verified: false,
-        reason: 'PayPal returned a different order than the submitted payment ID.'
-      };
-    }
-    if (orderStatus !== 'COMPLETED') {
-      return {
-        verified: false,
-        reason: `PayPal order status is ${orderData.status || 'unknown'}, expected COMPLETED. If PayPal already charged you, retry this submission using the same payment; do not pay again.`
-      };
-    }
-
-    const orderAmount = orderData.purchase_units?.[0]?.amount;
-    const expectedAmount = Number(amount);
-    if (
-      orderAmount?.currency_code !== 'USD' ||
-      !Number.isFinite(Number(orderAmount.value)) ||
-      !Number.isFinite(expectedAmount) ||
-      Number(orderAmount.value).toFixed(2) !== expectedAmount.toFixed(2)
-    ) {
-      return {
-        verified: false,
-        reason: 'PayPal payment amount does not match the submission amount.'
-      };
     }
 
     return {
-      verified: true,
-      providerDetails: {
-        paypalOrderId: orderData.id,
-        status: orderData.status,
-        payer: orderData.payer,
-        units: orderData.purchase_units
-      }
+      verified: false,
+      reason: 'Could not verify PayPal payment status with provider.'
     };
   }
 
