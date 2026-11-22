@@ -457,7 +457,7 @@ export default function LandingPage(props?: LandingPageProps) {
           variants={scaleIn}
         >
           <div>
-            <h3 className="text-xl md:text-2xl font-semibold">Building a project? Get it seen.</h3>
+            <h3 className="text-2xl md:text-3xl font-semibold">Building a project? Get it seen.</h3>
             <p className="text-gray-300">
               List your project with NYALTX Pro, then choose a Paddle, Motor, or Helicopter tier to
               reach readers in discovery, the News Hub, and at events.

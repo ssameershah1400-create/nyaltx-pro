@@ -1489,20 +1489,14 @@ export default function SubmitNewsModalCorporate({
                       tier={`${subType}_${plan}`}
                       email={userEmail.trim()}
                       cardOnly={payMethod === 'card'}
+                      requireServerVerification
+                      onBeforePayment={() => saveNewsCryptoDraft()}
                       onBeforeCryptoRedirect={() => saveNewsCryptoDraft()}
                       onSuccess={(details: any) => {
-                        const isCryptoPayment =
-                          details?.paymentSource === 'paypal_crypto' ||
-                          details?.payment_source?.crypto;
-                        if (isCryptoPayment) {
-                          try {
-                            saveNewsCryptoDraft(details.id);
-                          } catch (error) {
-                            console.error(
-                              'Could not save the verified PayPal crypto payment:',
-                              error
-                            );
-                          }
+                        try {
+                          saveNewsCryptoDraft(details.id);
+                        } catch (error) {
+                          console.error('Could not save the completed PayPal payment draft:', error);
                         }
                         setPendingPaypalPaymentId(details.id);
                         return handlePayAndSubmit({
