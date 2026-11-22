@@ -1336,7 +1336,7 @@ export default function SubmitNewsModalCorporate({
 
         {/* Step 3: Pay */}
         {modalStep === 3 && (
-          <div className="space-y-4">
+          <div className="mx-auto w-full max-w-3xl space-y-4">
             <div>
               <label className={LABEL}>
                 Your Contact Email (for editorial updates & live notification) *

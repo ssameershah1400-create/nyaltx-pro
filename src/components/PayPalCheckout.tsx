@@ -415,7 +415,7 @@ export default function PayPalCheckout({
 
   return (
     <div
-      className="paypal-checkout w-full rounded-xl border border-gray-700/70 bg-gray-800 p-4 shadow-xl"
+      className="paypal-checkout mx-auto w-full max-w-xl rounded-xl border border-gray-700/70 bg-gray-800 p-4 shadow-xl"
       aria-busy={processing}
     >
       <div className="mb-4 flex flex-col items-center justify-center gap-2 text-center">
