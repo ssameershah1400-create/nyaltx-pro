@@ -35,6 +35,7 @@ export default function PayPalCheckout({
   const [verificationIssue, setVerificationIssue] = useState<
     'configuration' | 'credentials' | 'provider'
   >('provider');
+  const [verificationDetail, setVerificationDetail] = useState('');
   const [readinessAttempt, setReadinessAttempt] = useState(0);
   const [cryptoCheckoutOpen, setCryptoCheckoutOpen] = useState(false);
   const [cryptoGivenName, setCryptoGivenName] = useState('');
@@ -67,18 +68,31 @@ export default function PayPalCheckout({
         const result: {
           ready?: boolean;
           reason?: 'configuration' | 'credentials' | 'provider';
+          paypalStatus?: number;
+          paypalError?: string;
+          environment?: 'sandbox' | 'live';
         } = await response.json();
         if (!response.ok || result.ready !== true) {
           setVerificationIssue(result.reason ?? 'provider');
+          setVerificationDetail(
+            result.reason === 'credentials' &&
+              result.paypalStatus &&
+              result.paypalError &&
+              result.environment
+              ? `PayPal returned ${result.paypalError} (HTTP ${result.paypalStatus}, ${result.environment}).`
+              : '',
+          );
           setVerificationStatus('unavailable');
           return;
         }
+        setVerificationDetail('');
         setVerificationStatus('ready');
       })
       .catch(error => {
         if (!controller.signal.aborted) {
           console.error('PayPal server verification readiness check failed:', error);
           setVerificationIssue('provider');
+          setVerificationDetail('');
           setVerificationStatus('unavailable');
         }
       });
@@ -491,6 +505,11 @@ export default function PayPalCheckout({
                   ? 'PayPal rejected the server credentials for this environment. No payment has been taken.'
                   : 'PayPal is temporarily unavailable for secure payment verification. No payment has been taken.'}
           </p>
+          {verificationDetail && (
+            <p className="mt-2 text-xs text-amber-300" role="note">
+              {verificationDetail}
+            </p>
+          )}
           {verificationStatus === 'unavailable' && verificationIssue === 'provider' && (
             <button
               type="button"
