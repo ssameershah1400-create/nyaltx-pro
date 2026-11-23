@@ -599,19 +599,19 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
       className="nh-slide"
       style={{
         background: activeBannerImage
-          ? '#070b12'
+          ? (GRADS[activeBanner.gradientIndex ?? 0] ?? GRADS[0])
           : slideBackground(activeBanner, false),
       }}
     >
       {activeBannerImage && (
-        <>
-          <div
-            aria-hidden="true"
-            className="nh-slide-backdrop"
-            style={{ backgroundImage: `url("${activeBannerImage}")` }}
-          />
-          <img className="nh-slide-image" src={activeBannerImage} alt="" />
-        </>
+        <img
+          className="nh-slide-image"
+          src={activeBannerImage}
+          alt=""
+          onError={event => {
+            event.currentTarget.style.display = 'none';
+          }}
+        />
       )}
       <div aria-hidden="true" className="nh-slide-shade" />
       <motion.div
@@ -1247,12 +1247,11 @@ const STYLES = `
     display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
     color: #fff;
   }
-  .nh-slide-backdrop { position: absolute; inset: -20px; background-position: center; background-size: cover; filter: blur(20px) brightness(.42); transform: scale(1.08); }
-  .nh-slide-image { position: absolute; z-index: 1; left: 50%; top: 14px; width: calc(100% - 80px); max-width: 90%; height: calc(100% - 14px); object-fit: contain; object-position: center top; transform: translateX(-50%); }
-  .nh-slide-shade { position: absolute; z-index: 2; inset: 45% 0 0; background: linear-gradient(to top, rgba(2,6,12,.35), rgba(2,6,12,.06) 65%, transparent); }
+  .nh-slide-image { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .nh-slide-shade { position: absolute; z-index: 2; inset: 0; background: linear-gradient(180deg, rgba(2,6,12,.05) 20%, rgba(2,6,12,.18) 50%, rgba(2,6,12,.82) 100%); }
   .nh-slide-copy { position: relative; z-index: 3; align-self: flex-start; width: fit-content; max-width: min(760px, 88%); color: #fff; }
   .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(20px, 2.5vw, 30px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
-  .nh-slide h2 span { border-radius: 6px; padding: 1px 6px; background: rgba(230,237,246,.7); color: rgba(7,17,29,.86); backdrop-filter: blur(6px); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .nh-slide h2 span { padding: 0; background: transparent; color: #fff; }
   .nh-tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 4px 9px; border-radius: 99px; background: rgba(255,255,255,.2); backdrop-filter: blur(4px); width: max-content; margin-bottom: 6px; }
   .nh-tag.sp { background: #facc15; color: #422006; font-weight: 800; }
   .nh-dots { position: absolute; right: 20px; bottom: 16px; display: flex; gap: 6px; z-index: 5; }
