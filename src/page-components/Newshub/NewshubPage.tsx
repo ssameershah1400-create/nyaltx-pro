@@ -586,14 +586,21 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
   const activeBannerContent = activeBanner ? (
     <div className={`nh-slide${activeBannerImage ? ' has-image' : ''}`}>
       {activeBannerImage && (
-        <img
-          className="nh-slide-image"
-          src={activeBannerImage}
-          alt=""
-          onError={event => {
-            event.currentTarget.style.display = 'none';
-          }}
-        />
+        <div className="nh-slide-media">
+          <div
+            aria-hidden="true"
+            className="nh-slide-backdrop"
+            style={{ backgroundImage: `url("${activeBannerImage}")` }}
+          />
+          <img
+            className="nh-slide-image"
+            src={activeBannerImage}
+            alt=""
+            onError={event => {
+              event.currentTarget.style.display = 'none';
+            }}
+          />
+        </div>
       )}
       <motion.div
         initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
@@ -1229,7 +1236,9 @@ const STYLES = `
     color: #fff;
   }
   .nh-slide.has-image { display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: 0; }
-  .nh-slide-image { position: relative; z-index: 1; display: block; width: 100%; height: 100%; min-height: 0; object-fit: fill; object-position: center; }
+  .nh-slide-media { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #070b12; }
+  .nh-slide-backdrop { position: absolute; inset: -20px; background-position: center; background-size: cover; filter: blur(18px) brightness(.42); transform: scale(1.08); }
+  .nh-slide-image { position: relative; z-index: 1; display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; object-position: center; }
   .nh-slide.has-image .nh-slide-copy { width: 100%; max-width: none; padding: 18px 32px 22px; }
   .nh-slide-copy { position: relative; z-index: 3; align-self: flex-start; width: fit-content; max-width: min(760px, 88%); color: #fff; }
   .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(20px, 2.5vw, 30px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
