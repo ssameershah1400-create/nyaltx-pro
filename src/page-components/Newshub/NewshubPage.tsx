@@ -596,7 +596,7 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
     ) : null;
   const activeBannerContent = activeBanner ? (
     <div
-      className="nh-slide"
+      className={`nh-slide${activeBannerImage ? ' has-image' : ''}`}
       style={{
         background: activeBannerImage
           ? (GRADS[activeBanner.gradientIndex ?? 0] ?? GRADS[0])
@@ -1247,8 +1247,9 @@ const STYLES = `
     display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
     color: #fff;
   }
-  .nh-slide-image { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
-  .nh-slide-shade { position: absolute; z-index: 2; inset: 0; background: linear-gradient(180deg, rgba(2,6,12,.05) 20%, rgba(2,6,12,.18) 50%, rgba(2,6,12,.82) 100%); }
+  .nh-slide.has-image { display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: 20px 32px 22px; }
+  .nh-slide-image { position: relative; z-index: 1; display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; object-position: center; }
+  .nh-slide-shade { position: absolute; z-index: 2; inset: 35% 0 0; background: linear-gradient(180deg, transparent, rgba(2,6,12,.78)); pointer-events: none; }
   .nh-slide-copy { position: relative; z-index: 3; align-self: flex-start; width: fit-content; max-width: min(760px, 88%); color: #fff; }
   .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(20px, 2.5vw, 30px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
   .nh-slide h2 span { padding: 0; background: transparent; color: #fff; }
