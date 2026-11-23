@@ -134,7 +134,7 @@ export default function LandingPage(props?: LandingPageProps) {
               <span className="mb-4 block text-sm font-semibold italic tracking-[0.2em] text-cyan-300">
                 NEW YORK ALT EXCHANGE
               </span>
-              <h1 className="max-w-3xl font-sans text-[clamp(2rem,5vw,3.5rem)] font-medium leading-[0.9] tracking-[-0.06em] [word-spacing:-0.08em] text-white">
+              <h1 className="max-w-3xl font-sans text-[clamp(2rem,5vw,3.5rem)] font-medium leading-[1.08] tracking-wide [word-spacing:-0.08em] text-white">
                 {heroTitleLeadParts.map((part, index) => (
                   <span
                     key={`hero-title-lead-${index}`}
