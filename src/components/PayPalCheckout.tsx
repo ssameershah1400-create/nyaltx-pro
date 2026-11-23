@@ -10,6 +10,11 @@ interface PayPalCheckoutProps {
   email?: string;
   cardOnly?: boolean;
   onBeforeCryptoRedirect?: () => void;
+  newsSubmission?: {
+    type: 'news' | 'pr';
+    plan: string;
+    promoCode?: string | null;
+  };
   onSuccess?: (details: any) => void | Promise<void>;
   onError?: (error: any) => void;
   sandboxMode?: boolean;
@@ -21,6 +26,7 @@ export default function PayPalCheckout({
   email,
   cardOnly = false,
   onBeforeCryptoRedirect,
+  newsSubmission,
   onSuccess,
   onError,
   sandboxMode = false,
@@ -31,6 +37,7 @@ export default function PayPalCheckout({
   const [cryptoGivenName, setCryptoGivenName] = useState('');
   const [cryptoSurname, setCryptoSurname] = useState('');
   const [cryptoProcessing, setCryptoProcessing] = useState(false);
+  const [approvedNewsOrderId, setApprovedNewsOrderId] = useState('');
   const processedCryptoOrderRef = useRef<string | null>(null);
   const cryptoCreateInProgressRef = useRef(false);
 
@@ -279,6 +286,33 @@ export default function PayPalCheckout({
     }
   };
 
+  const captureNewsOrder = async (orderId: string) => {
+    setProcessing(true);
+    const captureToast = toast.loading('💰 Confirming your PayPal payment...');
+    try {
+      const response = await fetch('/api/news/paypal/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.order) {
+        throw new Error(result.error || 'Could not confirm the PayPal payment.');
+      }
+
+      toast.dismiss(captureToast);
+      setApprovedNewsOrderId('');
+      await handleSuccess({ ...result.order, paymentSource: 'paypal_checkout' });
+    } catch (error) {
+      toast.dismiss(captureToast);
+      console.error('News Hub PayPal capture error:', error);
+      toast.error(error instanceof Error ? error.message : 'Could not confirm the PayPal payment.');
+      onError?.(error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   // Store PayPal payment order in database
   const storePayPalOrder = async (paymentDetails: any) => {
     try {
@@ -506,6 +540,27 @@ export default function PayPalCheckout({
             const orderToast = toast.loading('💳 Creating PayPal order...');
 
             try {
+              if (newsSubmission) {
+                setApprovedNewsOrderId('');
+                const response = await fetch('/api/news/paypal/order', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    amount,
+                    tier,
+                    email,
+                    ...newsSubmission,
+                  }),
+                });
+                const result = await response.json();
+                if (!response.ok || !result.orderId) {
+                  throw new Error(result.error || 'Failed to create the PayPal order.');
+                }
+                toast.dismiss(orderToast);
+                toast.success('✅ PayPal order created! Complete your payment.');
+                return result.orderId;
+              }
+
               const order = await actions.order.create({
                 intent: 'CAPTURE',
                 purchase_units: [
@@ -534,7 +589,19 @@ export default function PayPalCheckout({
               throw error;
             }
           }}
-          onApprove={async (_, actions) => {
+          onApprove={async (data, actions) => {
+            if (newsSubmission) {
+              if (!data.orderID) {
+                const error = new Error('PayPal did not return the approved order ID.');
+                setProcessing(false);
+                onError?.(error);
+                return;
+              }
+              setApprovedNewsOrderId(data.orderID);
+              await captureNewsOrder(data.orderID);
+              return;
+            }
+
             const captureToast = toast.loading('💰 Capturing your payment...');
 
             try {
@@ -567,6 +634,7 @@ export default function PayPalCheckout({
           }}
           onCancel={() => {
             console.log('Payment cancelled by user');
+            setApprovedNewsOrderId('');
             toast('⚠️ Payment cancelled by user', {
               icon: '❌',
               style: {
@@ -580,7 +648,23 @@ export default function PayPalCheckout({
           disabled={processing}
         />
 
-        {!cardOnly && !sandboxMode && (
+        {newsSubmission && approvedNewsOrderId && (
+          <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center">
+            <p className="mb-2 text-xs text-amber-200">
+              PayPal approved this order. Retry confirmation if needed; you will not be charged again.
+            </p>
+            <button
+              type="button"
+              onClick={() => void captureNewsOrder(approvedNewsOrderId)}
+              disabled={processing}
+              className="rounded-md border border-amber-400/40 px-3 py-2 text-xs font-semibold text-amber-100 disabled:opacity-50"
+            >
+              {processing ? 'Confirming...' : 'Retry PayPal confirmation'}
+            </button>
+          </div>
+        )}
+
+        {!cardOnly && (
           <div className="mt-4 border-t border-gray-700/50 pt-4">
             <button
               type="button"

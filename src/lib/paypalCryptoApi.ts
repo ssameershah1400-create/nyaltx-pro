@@ -55,7 +55,7 @@ export async function getPayPalCryptoAccessToken() {
   if (!response.ok) {
     const paypalError =
       typeof tokenData.error === 'string' ? tokenData.error.slice(0, 100) : undefined;
-    console.error('PayPal crypto OAuth failed:', {
+    console.error('PayPal OAuth failed:', {
       status: response.status,
       error: paypalError,
       description: tokenData.error_description,
@@ -69,3 +69,5 @@ export async function getPayPalCryptoAccessToken() {
 
   return { accessToken: tokenData.access_token, apiBaseUrl };
 }
+
+export const getPayPalAccessToken = getPayPalCryptoAccessToken;

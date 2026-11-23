@@ -6,7 +6,11 @@ import { NEWS_PAYPAL_CRYPTO_DRAFT_KEY, type NewsPayPalCryptoDraft } from '@/lib/
 import { PAID_NEWS_CATEGORIES } from '@/lib/paidNewsCategories';
 import { getNYAXPriceUSD } from '@/utils/nyaxPriceApi';
 import { calculateNewsPrice, NEWS_NYAX_DISCOUNT } from '@/lib/newsPricing';
-import { USDC_NYAX_RECEIVER } from '@/lib/paymentAddresses';
+import {
+  NEWS_NYAX_TOKEN_ADDRESS,
+  NEWS_USDC_TOKEN_ADDRESS,
+  USDC_NYAX_RECEIVER,
+} from '@/lib/paymentAddresses';
 import { useAppKit } from '@reown/appkit/react';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react';
 import { toReliableIpfsUrl } from '@/utils/ipfsUpload';
@@ -24,7 +28,7 @@ import {
   FaUpload,
 } from 'react-icons/fa';
 import { erc20Abi, isAddress, parseUnits } from 'viem';
-import { useAccount, useSwitchChain, useWriteContract } from 'wagmi';
+import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from 'wagmi';
 import type { QuillOptions } from 'quill';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
@@ -135,11 +139,11 @@ const NEWS_TEST_PLAN: PlanItem = {
   price: 1,
   priceLabel: 'sandbox test charge',
   ctaText: 'Test PayPal',
-  desc: 'A $1 PayPal sandbox test for the complete news submission and checkout flow.',
+  desc: 'A $1 PayPal Sandbox test that saves a marked admin draft without publishing a public article.',
   features: [
     'Uses PayPal sandbox credentials only',
-    'Does not publish or moderate a live article',
-    'Verifies the complete checkout and submission response',
+    'Saves an unpublished Sandbox test draft in Admin',
+    'Never publishes the test story on News Hub',
   ],
 };
 
@@ -149,12 +153,8 @@ const PLANS_CONFIG: Record<'news' | 'pr', PlanItem[]> = {
 };
 
 /* ---------- Payment configuration ---------- */
-const DEFAULT_NYAX: `0x${string}` = '0x5eed5621b92be4473f99bacac27deb57d9';
-const DEFAULT_USDC: `0x${string}` = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-
-const NYAX_TOKEN =
-  (process.env.NEXT_PUBLIC_NYAX_TOKEN_ADDRESS as `0x${string}` | undefined) ?? DEFAULT_NYAX;
-const USDC_TOKEN = DEFAULT_USDC;
+const NYAX_TOKEN = NEWS_NYAX_TOKEN_ADDRESS;
+const USDC_TOKEN = NEWS_USDC_TOKEN_ADDRESS;
 const PAYMENT_CHAIN_ID = 1;
 
 const PayPalIcon = () => (
@@ -310,6 +310,30 @@ export default function SubmitNewsModalCorporate({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const drawerDragControls = useDragControls();
   const prefersReducedMotion = useReducedMotion();
+  const publicClient = usePublicClient({ chainId: PAYMENT_CHAIN_ID });
+
+  const [nyaxPriceLoading, setNyaxPriceLoading] = useState(false);
+  const [nyaxPriceError, setNyaxPriceError] = useState('');
+  const refreshNyaxPrice = React.useCallback(async () => {
+    setNyaxPriceLoading(true);
+    setNyaxPriceError('');
+    try {
+      const price = await getNYAXPriceUSD();
+      if (!price || !Number.isFinite(price) || price <= 0) {
+        setNyaxPrice(null);
+        setNyaxPriceError('Could not load a valid NYAX price. Refresh the quote before paying.');
+        return;
+      }
+      setNyaxPrice(price);
+    } catch (error) {
+      setNyaxPrice(null);
+      setNyaxPriceError(
+        error instanceof Error ? error.message : 'Could not load a valid NYAX price.'
+      );
+    } finally {
+      setNyaxPriceLoading(false);
+    }
+  }, []);
 
   const closeDrawer = () => {
     if (!drawerClosing) setDrawerClosing(true);
@@ -430,10 +454,8 @@ export default function SubmitNewsModalCorporate({
   }, [enableTestPlan, initialPlan, initialType, isOpen]);
 
   useEffect(() => {
-    getNYAXPriceUSD()
-      .then(setNyaxPrice)
-      .catch(() => setNyaxPrice(null));
-  }, []);
+    void refreshNyaxPrice();
+  }, [refreshNyaxPrice]);
 
   if (!isOpen) return null;
 
@@ -449,8 +471,7 @@ export default function SubmitNewsModalCorporate({
     plan !== 'test' && payMethod === 'nyax'
   );
 
-  const nyaxRef = nyaxPrice && nyaxPrice > 0 ? nyaxPrice : 1.0;
-  const nyaxAmount = finalPrice / nyaxRef;
+  const nyaxAmount = nyaxPrice && nyaxPrice > 0 ? finalPrice / nyaxPrice : null;
   const usdcAmount = finalPrice; // 1 USDC = $1.00 USD
 
   const validEmail = userEmail.trim().length > 0 && userEmail.includes('@');
@@ -488,6 +509,7 @@ export default function SubmitNewsModalCorporate({
 
   const selectPlan = (nextPlan: string) => {
     setPlan(nextPlan);
+    if (nextPlan === 'test') setPayMethod('paypal');
     setAppliedPromo(null);
     setPromoCodeInput('');
     setPromoError('');
@@ -631,6 +653,11 @@ export default function SubmitNewsModalCorporate({
 
     const selectedPayMethod = paymentOverride?.paymentMethod || payMethod;
     const currentPayMethod = selectedPayMethod === 'card' ? 'paypal' : selectedPayMethod;
+    if (currentPayMethod === 'nyax' && (!nyaxPrice || nyaxPrice <= 0)) {
+      setFormError('The NYAX price is unavailable. Refresh the quote before submitting.');
+      setIsSubmitting(false);
+      return;
+    }
     if (currentPayMethod !== 'paypal' && !paymentOverride?.txHash && !cryptoTxHash.trim()) {
       setFormError('Please enter the transaction hash / signature after sending your payment.');
       setIsSubmitting(false);
@@ -760,6 +787,9 @@ export default function SubmitNewsModalCorporate({
 
       const decimals = method === 'nyax' ? 18 : 6;
       const amount = method === 'nyax' ? nyaxAmount : usdcAmount;
+      if (amount === null) {
+        throw new Error('The NYAX price is unavailable. Refresh the quote before paying.');
+      }
       const txHash = await writeContractAsync({
         chainId: PAYMENT_CHAIN_ID,
         abi: erc20Abi,
@@ -771,6 +801,13 @@ export default function SubmitNewsModalCorporate({
       if (!txHash) throw new Error('Transaction was rejected or failed to broadcast.');
 
       setCryptoTxHash(txHash);
+      if (!publicClient) {
+        throw new Error('Ethereum transaction confirmation is unavailable. Retry with the same hash.');
+      }
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        throw new Error('The Ethereum payment transaction did not succeed.');
+      }
       await handlePayAndSubmit({
         paymentMethod: method,
         txHash,
@@ -812,7 +849,10 @@ export default function SubmitNewsModalCorporate({
   const payTab = (id: PayMethod, label: string, active: string) => (
     <button
       type="button"
-      onClick={() => setPayMethod(id)}
+      onClick={() => {
+        setPayMethod(id);
+        if (id === 'nyax') void refreshNyaxPrice();
+      }}
       className={`p-2.5 rounded-none border text-xs font-medium transition-colors flex items-center justify-center gap-2 ${
         payMethod === id ? active : 'border-[#eeeeee] bg-white text-gray-700 hover:bg-gray-50'
       }`}
@@ -908,7 +948,8 @@ export default function SubmitNewsModalCorporate({
                 walletPaying !== null ||
                 isSwitchingToEthereum ||
                 isSubmitting ||
-                chain?.id !== PAYMENT_CHAIN_ID
+                chain?.id !== PAYMENT_CHAIN_ID ||
+                (method === 'nyax' && (nyaxPriceLoading || nyaxAmount === null))
               }
               className={`w-full py-3 ${BTN_PRIMARY}`}
             >
@@ -920,6 +961,34 @@ export default function SubmitNewsModalCorporate({
                 cfg.btnLabel
               )}
             </button>
+          </div>
+        )}
+
+        {method === 'nyax' && nyaxPriceLoading && nyaxPrice !== null && (
+          <p role="status" className="text-xs text-cyan-200">
+            Refreshing the NYAX price quote...
+          </p>
+        )}
+
+        {method === 'nyax' && nyaxPrice === null && (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200"
+          >
+            <span>
+              {nyaxPriceLoading
+                ? 'Loading the current NYAX price...'
+                : nyaxPriceError || 'The NYAX price is unavailable. Refresh before paying.'}
+            </span>
+            {!nyaxPriceLoading && (
+              <button
+                type="button"
+                onClick={() => void refreshNyaxPrice()}
+                className="shrink-0 underline"
+              >
+                Retry
+              </button>
+            )}
           </div>
         )}
 
@@ -1389,16 +1458,20 @@ export default function SubmitNewsModalCorporate({
               <label className={LABEL}>Select Payment Method</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {payTab('paypal', 'PayPal', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
-                {payTab(
-                  'card',
-                  'Credit/Debit Card',
-                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
-                )}
-                {payTab('usdc', 'USDC', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
-                {payTab(
-                  'nyax',
-                  plan === 'test' ? 'NYAX' : 'NYAX (20% off)',
-                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
+                {plan !== 'test' && (
+                  <>
+                    {payTab(
+                      'card',
+                      'Credit/Debit Card',
+                      'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
+                    )}
+                    {payTab('usdc', 'USDC', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
+                    {payTab(
+                      'nyax',
+                      'NYAX (20% off)',
+                      'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -1440,7 +1513,7 @@ export default function SubmitNewsModalCorporate({
                     </h4>
                     <p className="text-xs text-gray-400">
                       {plan === 'test'
-                        ? 'Use your PayPal sandbox account. No live money or published article.'
+                        ? 'Use your PayPal Sandbox account. The test is saved as an unpublished admin draft.'
                         : payMethod === 'card'
                           ? 'Pay securely by credit or debit card through PayPal.'
                           : 'Complete payment securely with PayPal.'}
@@ -1479,6 +1552,11 @@ export default function SubmitNewsModalCorporate({
                       amount={finalPrice.toFixed(2)}
                       tier={`${subType}_${plan}`}
                       email={userEmail.trim()}
+                      newsSubmission={{
+                        type: subType,
+                        plan,
+                        promoCode: appliedPromo?.code || null,
+                      }}
                       cardOnly={payMethod === 'card'}
                       sandboxMode={plan === 'test'}
                       onBeforeCryptoRedirect={() => saveNewsCryptoDraft()}
@@ -1533,8 +1611,11 @@ export default function SubmitNewsModalCorporate({
                 subtitle: 'Ethereum Mainnet (ETH, chain ID 1) only',
                 border: 'border-amber-500/30',
                 titleColor: 'text-amber-300',
-                amountText: `~${nyaxAmount.toFixed(2)} NYAX`,
-                btnLabel: `Pay ${nyaxAmount.toFixed(2)} NYAX ($${finalPrice.toFixed(2)})`,
+                amountText: nyaxAmount === null ? 'Price unavailable' : `~${nyaxAmount.toFixed(6)} NYAX`,
+                btnLabel:
+                  nyaxAmount === null
+                    ? 'NYAX price unavailable'
+                    : `Pay ${nyaxAmount.toFixed(6)} NYAX ($${finalPrice.toFixed(2)})`,
               })}
 
             {formError && (
@@ -1571,8 +1652,8 @@ export default function SubmitNewsModalCorporate({
                   PayPal sandbox test completed!
                 </h3>
                 <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
-                  The sandbox payment was verified and the News Hub submission response completed
-                  successfully. No live charge was made and no article was published.
+                  The Sandbox payment was verified and the story was saved as a clearly marked,
+                  unpublished draft in Admin. No public article was published.
                 </p>
               </>
             ) : (

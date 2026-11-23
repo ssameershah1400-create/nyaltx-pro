@@ -1256,7 +1256,7 @@ const STYLES = `
   .nh-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
 
   /* ─── Chips ─── */
-  .nh-category-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 0; border-bottom: 1px solid var(--nh-border); }
+  .nh-category-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 20px 0 24px; padding: 10px 0; border-bottom: 1px solid var(--nh-border); }
   .nh-kicker { color: var(--nh-accent); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
   .nh-category-title { margin: 4px 0 0; font-size: 24px; font-weight: 750; letter-spacing: -.02em; }
   .nh-chips { display: flex; max-width: 100%; gap: 7px; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: thin; }

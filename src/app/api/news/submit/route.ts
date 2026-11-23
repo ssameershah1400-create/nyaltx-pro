@@ -3,7 +3,7 @@ import { getDb, getCollection } from '@/lib/mongodb';
 import { Order } from '@/app/api/admin/orders/route';
 import { verifyNewsPayment, sendNewsSubmissionConfirmationEmail } from '@/lib/newsEmailService';
 import { findUsablePromoCode } from '@/lib/newsPromoCodes';
-import { calculateNewsPrice } from '@/lib/newsPricing';
+import { calculateNewsPrice, getNewsPlanBasePrice } from '@/lib/newsPricing';
 import { getNewshubCategories } from '@/lib/newshubInitialData';
 import { getPayPalEnvironment, isNewsSandboxTestEnabled } from '@/lib/paypalEnvironment';
 
@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
       planName,
       isTest = false,
     } = data;
+    const normalizedTxHash =
+      typeof txHash === 'string' && txHash.trim() ? txHash.trim().toLowerCase() : null;
 
     const paypalEnvironment = getPayPalEnvironment();
     const testPlanEnabled = isNewsSandboxTestEnabled();
@@ -76,14 +78,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const planPrice =
-      plan === 'feed'
-        ? 99
-        : plan === 'slider' || plan === 'prem'
-          ? 199
-          : plan === 'test' && testPlanEnabled
-            ? 1
-            : null;
+    const planPrice = getNewsPlanBasePrice(plan, testPlanEnabled);
     if (planPrice === null) {
       return NextResponse.json(
         { error: 'This news publishing plan is unavailable.' },
@@ -168,13 +163,45 @@ export async function POST(req: NextRequest) {
             : `order_news_${existingSubmission._id}`;
         return NextResponse.json({
           success: true,
+          test: Boolean(existingSubmission.isSandboxTest),
           id: existingSubmission._id.toString(),
           slug: existingSubmission.slug,
           orderId: existingOrderId,
+          orderRecorded: !existingSubmission.isSandboxTest,
+          paymentVerified: true,
+          emailSent: Boolean(existingSubmission.paymentConfirmationEmailSent),
+          message: existingSubmission.isSandboxTest
+            ? 'This Sandbox test is already saved as an unpublished admin draft.'
+            : 'This paid story is already submitted and pending admin approval.',
+        });
+      }
+    }
+
+    if (
+      (paymentMethod === 'usdc' || paymentMethod === 'nyax') &&
+      normalizedTxHash &&
+      /^0x[a-f0-9]{64}$/.test(normalizedTxHash)
+    ) {
+      const existingDb = await getDb();
+      const existingSubmission = await existingDb.collection('corporate_news').findOne({
+        paymentMethod,
+        txHash: { $regex: `^${normalizedTxHash}$`, $options: 'i' },
+        isPaid: true,
+        paymentVerified: true,
+      });
+      if (existingSubmission) {
+        return NextResponse.json({
+          success: true,
+          id: existingSubmission._id.toString(),
+          slug: existingSubmission.slug,
+          orderId:
+            typeof existingSubmission.orderId === 'string'
+              ? existingSubmission.orderId
+              : `order_news_${existingSubmission._id}`,
           orderRecorded: true,
           paymentVerified: true,
           emailSent: Boolean(existingSubmission.paymentConfirmationEmailSent),
-          message: 'This paid story is already submitted and pending admin approval.',
+          message: 'This payment is already linked to a news submission.',
         });
       }
     }
@@ -183,7 +210,7 @@ export async function POST(req: NextRequest) {
     const paymentVerification = await verifyNewsPayment({
       paymentMethod,
       paymentId: paymentId || null,
-      txHash: txHash || null,
+      txHash: normalizedTxHash,
       amount: submissionAmount,
       paymentStatus,
     });
@@ -199,16 +226,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (isSandboxTest) {
-      return NextResponse.json({
-        success: true,
-        test: true,
-        paymentVerified: true,
-        paymentId: paymentId?.trim() || null,
-        message: 'PayPal sandbox checkout test completed successfully. No article was published.',
-      });
-    }
-
     const db = await getDb();
     const newsCollection = db.collection('corporate_news');
 
@@ -222,7 +239,7 @@ export async function POST(req: NextRequest) {
     const resolvedPlanName =
       planName ||
       (plan === 'test'
-        ? 'Checkout Flow Test ($1)'
+        ? 'PayPal Sandbox Test ($1)'
         : plan === 'slider' || plan === 'prem'
           ? 'News Publishing & Distribution ($199)'
           : 'News Publishing ($99)');
@@ -245,13 +262,14 @@ export async function POST(req: NextRequest) {
       email: email.trim(),
       plan,
       planName: resolvedPlanName,
+      isSandboxTest,
       orderId,
       paymentMethod,
       amount: submissionAmount,
       originalAmount: String(planPrice),
       promoCode: promoCode || null,
       promoDiscount: promoDiscountPercent / 100,
-      txHash: txHash || null,
+      txHash: normalizedTxHash,
       paymentId: paymentId || null,
       walletAddress: walletAddress || null,
       paymentStatus: paymentStatus || 'completed',
@@ -261,11 +279,15 @@ export async function POST(req: NextRequest) {
       paymentProviderDetails: paymentVerification.providerDetails || null,
       paymentConfirmationEmailSent: false,
       approvalEmailSent: false,
-      status: 'pending', // Pending admin review
-      isPendingReview: true,
+      status: isSandboxTest ? 'draft' : 'pending',
+      isPendingReview: !isSandboxTest,
       isPaid: true,
       featuredInBanner: plan === 'slider' || plan === 'prem',
-      tags: [category, type === 'pr' ? 'Press Release' : 'Community'],
+      tags: [
+        ...(isSandboxTest ? ['SANDBOX TEST'] : []),
+        category,
+        type === 'pr' ? 'Press Release' : 'Community',
+      ],
       slug: finalSlug,
       views: 0,
       createdAt: new Date(),
@@ -276,103 +298,113 @@ export async function POST(req: NextRequest) {
 
     // 2. Record the verified payment order in 'orders' collection
     let orderRecorded = false;
-    try {
-      const ordersCollection = await getCollection<Order>('orders');
+    if (!isSandboxTest) {
+      try {
+        const ordersCollection = await getCollection<Order>('orders');
 
-      const newOrder: Order & {
-        promoCode?: string;
-        promoDiscount?: number;
-        originalAmount?: string;
-      } = {
-        id: orderId,
-        type: 'news_submission',
-        status: 'completed',
-        paymentMethod,
-        amount: String(submissionAmount),
-        promoCode: promoCode || undefined,
-        promoDiscount: promoDiscountPercent / 100,
-        originalAmount: String(planPrice),
-        currency: paymentMethod === 'usdc' ? 'USDC' : paymentMethod === 'nyax' ? 'NYAX' : 'USD',
-        txHash: txHash || undefined,
-        paymentId: paymentId || undefined,
-        walletAddress: walletAddress || undefined,
-        email: email.trim(),
-        productName: `NYALTX News Hub - ${type === 'pr' ? 'Press Release' : 'News'} (${resolvedPlanName})`,
-        tier: plan,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        metadata: {
-          newsId: insertResult.insertedId.toString(),
-          headline: title,
-          category,
-          submissionType: type,
-          plan,
-          planName: resolvedPlanName,
+        const newOrder: Order & {
+          promoCode?: string;
+          promoDiscount?: number;
+          originalAmount?: string;
+        } = {
+          id: orderId,
+          type: 'news_submission',
+          status: 'completed',
           paymentMethod,
-          paymentSource: paymentVerification.providerDetails?.paymentSource || paymentMethod,
+          amount:
+            paymentMethod === 'nyax'
+              ? String(paymentVerification.providerDetails?.amount ?? submissionAmount)
+              : String(submissionAmount),
           promoCode: promoCode || undefined,
           promoDiscount: promoDiscountPercent / 100,
           originalAmount: String(planPrice),
-          paymentId,
-          txHash,
-          walletAddress,
-          paymentVerified: true,
-        },
-      };
+          currency: paymentMethod === 'usdc' ? 'USDC' : paymentMethod === 'nyax' ? 'NYAX' : 'USD',
+          txHash: normalizedTxHash || undefined,
+          paymentId: paymentId || undefined,
+          walletAddress: walletAddress || undefined,
+          email: email.trim(),
+          productName: `NYALTX News Hub - ${type === 'pr' ? 'Press Release' : 'News'} (${resolvedPlanName})`,
+          tier: plan,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          metadata: {
+            newsId: insertResult.insertedId.toString(),
+            headline: title,
+            category,
+            submissionType: type,
+            plan,
+            planName: resolvedPlanName,
+            paymentMethod,
+            paymentSource: paymentVerification.providerDetails?.paymentSource || paymentMethod,
+            amountUsd: String(submissionAmount),
+            promoCode: promoCode || undefined,
+            promoDiscount: promoDiscountPercent / 100,
+            originalAmount: String(planPrice),
+            paymentId,
+            txHash: normalizedTxHash,
+            walletAddress,
+            paymentVerified: true,
+          },
+        };
 
-      await ordersCollection.insertOne(newOrder);
-      orderRecorded = true;
-    } catch (orderErr) {
-      console.error(
-        'Could not record news submission order; the admin orders API will recover it from the submission:',
-        orderErr
-      );
+        await ordersCollection.insertOne(newOrder);
+        orderRecorded = true;
+      } catch (orderErr) {
+        console.error(
+          'Could not record news submission order; the admin orders API will recover it from the submission:',
+          orderErr
+        );
+      }
     }
 
     // 3. Send payment & submission confirmation email to client
     let emailSent = false;
-    try {
-      const emailRes = await sendNewsSubmissionConfirmationEmail({
-        to: email.trim(),
-        headline: title.trim(),
-        category,
-        planName: resolvedPlanName,
-        amount: submissionAmount,
-        paymentMethod,
-        paymentId: paymentId || undefined,
-        txHash: txHash || undefined,
-        author: submissionDoc.author,
-        submittedAt: submissionDoc.createdAt.toISOString(),
-      });
+    if (!isSandboxTest) {
+      try {
+        const emailRes = await sendNewsSubmissionConfirmationEmail({
+          to: email.trim(),
+          headline: title.trim(),
+          category,
+          planName: resolvedPlanName,
+          amount: submissionAmount,
+          paymentMethod,
+          paymentId: paymentId || undefined,
+          txHash: normalizedTxHash || undefined,
+          author: submissionDoc.author,
+          submittedAt: submissionDoc.createdAt.toISOString(),
+        });
 
-      if (emailRes.success) {
-        emailSent = true;
-        await newsCollection.updateOne(
-          { _id: insertResult.insertedId },
-          {
-            $set: {
-              paymentConfirmationEmailSent: true,
-              paymentConfirmationEmailSentAt: new Date(),
-              paymentConfirmationMessageId: emailRes.messageId,
-            },
-          }
-        );
+        if (emailRes.success) {
+          emailSent = true;
+          await newsCollection.updateOne(
+            { _id: insertResult.insertedId },
+            {
+              $set: {
+                paymentConfirmationEmailSent: true,
+                paymentConfirmationEmailSentAt: new Date(),
+                paymentConfirmationMessageId: emailRes.messageId,
+              },
+            }
+          );
+        }
+      } catch (emailError) {
+        console.error('Error sending news submission email:', emailError);
       }
-    } catch (emailError) {
-      console.error('Error sending news submission email:', emailError);
     }
 
     return NextResponse.json({
       success: true,
+      test: isSandboxTest,
       id: insertResult.insertedId.toString(),
       slug: finalSlug,
       orderId,
       orderRecorded,
       paymentVerified: true,
       emailSent,
-      message:
-        'Payment verified successfully. Your story has been submitted and is pending admin approval.',
+      message: isSandboxTest
+        ? 'PayPal Sandbox payment verified. The story was saved as an unpublished Sandbox test draft in Admin.'
+        : 'Payment verified successfully. Your story has been submitted and is pending admin approval.',
     });
   } catch (error: any) {
     console.error('Error submitting news:', error);

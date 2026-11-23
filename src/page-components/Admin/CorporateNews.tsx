@@ -114,17 +114,19 @@ interface NewsArticle {
   email?: string;
   isPaid?: boolean;
   paymentVerified?: boolean;
+  isSandboxTest?: boolean;
 }
 
 const isPaidNewsSubmission = (article: NewsArticle) =>
   Boolean(
-    article.isPaid ||
-    article.paymentVerified ||
-    article.paymentMethod ||
-    article.paymentId ||
-    article.txHash ||
-    article.plan ||
-    article.amount
+    !article.isSandboxTest &&
+      (article.isPaid ||
+        article.paymentVerified ||
+        article.paymentMethod ||
+        article.paymentId ||
+        article.txHash ||
+        article.plan ||
+        article.amount)
   );
 
 function AdminCorporateNewsComponent() {
@@ -133,7 +135,9 @@ function AdminCorporateNewsComponent() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'published' | 'draft'>(
     'all'
   );
-  const [submissionFilter, setSubmissionFilter] = useState<'all' | 'paid' | 'corporate'>('all');
+  const [submissionFilter, setSubmissionFilter] = useState<
+    'all' | 'paid' | 'corporate' | 'sandbox'
+  >('all');
   const [newsSearch, setNewsSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -696,6 +700,8 @@ function AdminCorporateNewsComponent() {
   };
 
   const newsByType = news.filter(article => {
+    if (submissionFilter === 'sandbox') return Boolean(article.isSandboxTest);
+    if (article.isSandboxTest) return false;
     if (submissionFilter === 'paid') return isPaidNewsSubmission(article);
     if (submissionFilter === 'corporate') return !isPaidNewsSubmission(article);
     return true;
@@ -712,6 +718,7 @@ function AdminCorporateNewsComponent() {
   const totalPages = Math.max(1, Math.ceil(visibleNews.length / pageSize));
   const pagedNews = visibleNews.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const paidNewsCount = news.filter(isPaidNewsSubmission).length;
+  const sandboxNewsCount = news.filter(article => article.isSandboxTest).length;
 
   return (
     <div className="min-w-0 space-y-6">
@@ -822,14 +829,22 @@ function AdminCorporateNewsComponent() {
           [
             ['all', 'All News', hasLoadedNews ? news.length : null],
             ['paid', 'Paid Submissions', hasLoadedNews ? paidNewsCount : null],
-            ['corporate', 'Corporate News', hasLoadedNews ? news.length - paidNewsCount : null],
+            [
+              'corporate',
+              'Corporate News',
+              hasLoadedNews ? news.length - paidNewsCount - sandboxNewsCount : null,
+            ],
+            ['sandbox', 'Sandbox Tests', hasLoadedNews ? sandboxNewsCount : null],
           ] as const
         ).map(([filter, label, count]) => (
           <Button
             key={filter}
             size="sm"
             variant={submissionFilter === filter ? 'secondary' : 'ghost'}
-            onClick={() => setSubmissionFilter(filter)}
+            onClick={() => {
+              setSubmissionFilter(filter);
+              if (filter === 'sandbox') setStatusFilter('all');
+            }}
           >
             {label} ({count ?? '—'})
           </Button>
@@ -1145,7 +1160,9 @@ function AdminCorporateNewsComponent() {
               ? 'Paid News Submissions'
               : submissionFilter === 'corporate'
                 ? 'Corporate News'
-                : 'News Articles & Submissions'}
+                : submissionFilter === 'sandbox'
+                  ? 'Sandbox Test Drafts'
+                  : 'News Articles & Submissions'}
             {newsByType.length > 0 && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
                 {newsByType.length}
@@ -1235,7 +1252,9 @@ function AdminCorporateNewsComponent() {
                     ? 'No paid news submissions found in this filter.'
                     : submissionFilter === 'corporate'
                       ? 'No corporate news articles found in this filter.'
-                      : 'Create your first news article to get started'}
+                      : submissionFilter === 'sandbox'
+                        ? 'No Sandbox test drafts found.'
+                        : 'Create your first news article to get started'}
               </p>
             </div>
           ) : (
@@ -1263,6 +1282,11 @@ function AdminCorporateNewsComponent() {
                             {article.category}
                           </span>
                         )}
+                        {article.isSandboxTest && (
+                          <span className="mt-2 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-200">
+                            Sandbox test · not published
+                          </span>
+                        )}
                         {article.featuredInBanner && (
                           <span className="mt-2 inline-flex rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[11px] text-cyan-200">
                             In top banner
@@ -1284,7 +1308,12 @@ function AdminCorporateNewsComponent() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col gap-1 text-xs text-white/60">
-                          {isPaidNewsSubmission(article) ? (
+                          {article.isSandboxTest ? (
+                            <>
+                              <span className="text-amber-200">PayPal Sandbox test</span>
+                              <span>${article.amount} USD · not a live payment</span>
+                            </>
+                          ) : isPaidNewsSubmission(article) ? (
                             <>
                               <span className="text-blue-200">
                                 {article.paymentSource === 'paypal_crypto'

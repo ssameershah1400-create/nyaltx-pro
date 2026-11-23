@@ -6,6 +6,205 @@ import { render } from '@react-email/render';
 import nodemailer from 'nodemailer';
 import { getCollection } from '@/lib/mongodb';
 import { getPayPalEnvironment } from '@/lib/paypalEnvironment';
+import {
+  createPublicClient,
+  decodeEventLog,
+  decodeFunctionData,
+  erc20Abi,
+  formatUnits,
+  http,
+  isAddress,
+  parseUnits,
+  type Hash,
+} from 'viem';
+import { mainnet } from 'viem/chains';
+import {
+  DEFAULT_NEWS_NYAX_TOKEN_ADDRESS,
+  NEWS_NYAX_TOKEN_ADDRESS,
+  NEWS_USDC_TOKEN_ADDRESS,
+  USDC_NYAX_RECEIVER,
+} from '@/lib/paymentAddresses';
+import { fetchNyaxMarketData } from '@/lib/nyaxMarketData';
+
+const TRANSFER_EVENT_SIGNATURE =
+  '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+async function verifyEvmTokenPayment(
+  paymentMethod: 'usdc' | 'nyax',
+  txHash: string | null | undefined,
+  amount: number | string
+): Promise<PaymentVerificationResult> {
+  const hash = txHash?.trim();
+  if (!hash || !/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+    return {
+      verified: false,
+      reason: 'Enter a valid Ethereum transaction hash.',
+    };
+  }
+
+  const tokenAddress =
+    paymentMethod === 'usdc'
+      ? NEWS_USDC_TOKEN_ADDRESS
+      : NEWS_NYAX_TOKEN_ADDRESS;
+  if (!isAddress(tokenAddress) || !isAddress(USDC_NYAX_RECEIVER)) {
+    return {
+      verified: false,
+      reason: 'The Ethereum payment token or treasury address is not configured correctly.',
+    };
+  }
+  if (
+    paymentMethod === 'nyax' &&
+    tokenAddress.toLowerCase() !== DEFAULT_NEWS_NYAX_TOKEN_ADDRESS.toLowerCase()
+  ) {
+    return {
+      verified: false,
+      reason: 'The configured NYAX token does not match the token used by the NYAX price quote.',
+    };
+  }
+
+  const expectedUsd = Number(amount);
+  if (!Number.isFinite(expectedUsd) || expectedUsd <= 0) {
+    return { verified: false, reason: 'The expected payment amount is invalid.' };
+  }
+
+  const rpcUrl =
+    process.env.NEWS_PAYMENT_RPC_URL ||
+    process.env.RPC_URL ||
+    process.env.NEXT_PUBLIC_RPC_URL ||
+    'https://ethereum-rpc.publicnode.com';
+
+  try {
+    const client = createPublicClient({
+      chain: mainnet,
+      transport: http(rpcUrl, { timeout: 15_000 }),
+    });
+    if ((await client.getChainId()) !== mainnet.id) {
+      return {
+        verified: false,
+        reason: 'Payment verification is connected to the wrong network. Use Ethereum Mainnet.',
+      };
+    }
+
+    const transactionHash = hash as Hash;
+    const [transaction, receipt] = await Promise.all([
+      client.getTransaction({ hash: transactionHash }),
+      client.getTransactionReceipt({ hash: transactionHash }),
+    ]);
+
+    if (receipt.status !== 'success') {
+      return { verified: false, reason: 'The Ethereum payment transaction did not succeed.' };
+    }
+    if (
+      transaction.chainId !== null &&
+      transaction.chainId !== undefined &&
+      transaction.chainId !== mainnet.id
+    ) {
+      return {
+        verified: false,
+        reason: 'The payment transaction was not sent on Ethereum Mainnet.',
+      };
+    }
+    if (transaction.to?.toLowerCase() !== tokenAddress.toLowerCase()) {
+      return {
+        verified: false,
+        reason: `The transaction does not transfer the required ${paymentMethod.toUpperCase()} token.`,
+      };
+    }
+
+    const decodedTransfer = decodeFunctionData({ abi: erc20Abi, data: transaction.input });
+    if (decodedTransfer.functionName !== 'transfer') {
+      return { verified: false, reason: 'The transaction is not an ERC-20 transfer.' };
+    }
+    const [recipient, tokenAmount] = decodedTransfer.args;
+    if (
+      recipient.toLowerCase() !== USDC_NYAX_RECEIVER.toLowerCase() ||
+      tokenAmount <= BigInt(0)
+    ) {
+      return {
+        verified: false,
+        reason: 'The token transfer recipient or amount does not match the News Hub treasury.',
+      };
+    }
+
+    const transferLog = receipt.logs.find(
+      log =>
+        log.address.toLowerCase() === tokenAddress.toLowerCase() &&
+        log.topics[0]?.toLowerCase() === TRANSFER_EVENT_SIGNATURE
+    );
+    if (!transferLog) {
+      return { verified: false, reason: 'The transaction has no matching token transfer receipt.' };
+    }
+    const transferEvent = decodeEventLog({
+      abi: erc20Abi,
+      eventName: 'Transfer',
+      data: transferLog.data,
+      topics: transferLog.topics,
+    });
+    if (
+      transferEvent.args.from.toLowerCase() !== transaction.from.toLowerCase() ||
+      transferEvent.args.to.toLowerCase() !== USDC_NYAX_RECEIVER.toLowerCase() ||
+      transferEvent.args.value !== tokenAmount
+    ) {
+      return {
+        verified: false,
+        reason: 'The confirmed token transfer does not match the submitted transaction.',
+      };
+    }
+
+    if (paymentMethod === 'usdc') {
+      const expectedTokenAmount = parseUnits(expectedUsd.toFixed(2), 6);
+      if (tokenAmount !== expectedTokenAmount) {
+        return {
+          verified: false,
+          reason: 'The USDC transfer amount does not match the News Hub plan price.',
+        };
+      }
+
+      return {
+        verified: true,
+        providerDetails: {
+          txHash: transactionHash,
+          chain: 'ethereum',
+          token: 'USDC',
+          tokenAddress,
+          recipient: USDC_NYAX_RECEIVER,
+          amount: formatUnits(tokenAmount, 6),
+        },
+      };
+    }
+
+    const { priceUsd } = await fetchNyaxMarketData();
+    const paidUsd = Number(formatUnits(tokenAmount, 18)) * priceUsd;
+    const deviation = Math.abs(paidUsd - expectedUsd) / expectedUsd;
+    if (!Number.isFinite(paidUsd) || deviation > 0.01) {
+      return {
+        verified: false,
+        reason: 'The NYAX transfer is more than 1% away from the plan price. Refresh the quote before paying.',
+      };
+    }
+
+    return {
+      verified: true,
+      providerDetails: {
+        txHash: transactionHash,
+        chain: 'ethereum',
+        token: 'NYAX',
+        tokenAddress,
+        recipient: USDC_NYAX_RECEIVER,
+        amount: formatUnits(tokenAmount, 18),
+        priceUsd,
+        amountUsd: paidUsd,
+      },
+    };
+  } catch (error) {
+    console.warn('Ethereum token payment verification failed:', error);
+    return {
+      verified: false,
+      reason:
+        'Could not confirm the Ethereum payment yet. Wait for confirmation and retry with the same transaction hash.',
+    };
+  }
+}
 
 // Create Namecheap / SMTP email transporter (consistent with tokens/contact routes)
 export const createEmailTransporter = () => {
@@ -172,58 +371,15 @@ export async function verifyNewsPayment(params: VerifyPaymentParams): Promise<Pa
     };
   }
 
-  // 3. Ethereum / NYAX / USDC Token Crypto Verification
-  if (paymentMethod === 'eth' || paymentMethod === 'nyax' || paymentMethod === 'usdc') {
-    const hash = txHash?.trim();
-    if (!hash || !/^0x[a-fA-F0-9]{64}$/.test(hash)) {
-      return {
-        verified: false,
-        reason: 'Invalid Ethereum/EVM transaction hash format.'
-      };
-    }
+  // Ethereum token payment verification
+  if (paymentMethod === 'nyax' || paymentMethod === 'usdc') {
+    return verifyEvmTokenPayment(paymentMethod, txHash, amount);
+  }
 
-    // Check EVM transaction receipt if RPC is configured
-    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL;
-    if (rpcUrl && !rpcUrl.includes('your_')) {
-      try {
-        const rpcRes = await fetch(rpcUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_getTransactionByHash',
-            params: [hash]
-          }),
-          cache: 'no-store'
-        });
-
-        if (rpcRes.ok) {
-          const rpcData = await rpcRes.json();
-          if (rpcData.result) {
-            return {
-              verified: true,
-              providerDetails: {
-                txHash: hash,
-                blockNumber: rpcData.result.blockNumber,
-                from: rpcData.result.from,
-                to: rpcData.result.to
-              }
-            };
-          }
-        }
-      } catch (rpcErr: any) {
-        console.warn('RPC check warning:', rpcErr.message);
-      }
-    }
-
-    // Valid format and completed status
+  if (paymentMethod === 'eth') {
     return {
-      verified: true,
-      providerDetails: {
-        txHash: hash,
-        chain: 'evm'
-      }
+      verified: false,
+      reason: 'Direct ETH payments are not supported for News Hub submissions.',
     };
   }
 

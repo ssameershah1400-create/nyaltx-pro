@@ -165,7 +165,11 @@ export async function GET(req: NextRequest) {
             type: 'news_submission',
             status: 'completed',
             paymentMethod,
-            amount: String(submission.amount ?? '0'),
+            amount: String(
+              paymentMethod === 'nyax'
+                ? (submission.paymentProviderDetails?.amount ?? submission.amount ?? '0')
+                : (submission.amount ?? '0')
+            ),
             currency,
             txHash: submission.txHash || undefined,
             paymentId: submission.paymentId || undefined,

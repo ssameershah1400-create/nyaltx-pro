@@ -1,90 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchNyaxMarketData } from '@/lib/nyaxMarketData';
+import { DEFAULT_NEWS_NYAX_TOKEN_ADDRESS } from '@/lib/paymentAddresses';
 
 // NYAX token configuration
-const NYAX_CONTRACT_ADDRESS = '0x5eEd5621B92Be4473F99BaCAC77ACfA27DEB57d9';
-const NYAX_POOL_ADDRESS = '0x9861039bF9b66b3b30d59da1e7d4034fd08b8b3f';
-const GECKOTERMINAL_API_URL = `https://api.geckoterminal.com/api/v2/networks/eth/pools/${NYAX_POOL_ADDRESS}`;
-
-interface GeckoTerminalPoolResponse {
-  data: {
-    id: string;
-    type: string;
-    attributes: {
-      base_token_price_usd: string;
-      base_token_price_native_currency: string;
-      quote_token_price_usd: string;
-      quote_token_price_native_currency: string;
-      price_change_percentage: {
-        h24: string;
-        h6: string;
-        h1: string;
-        m30: string;
-        m15: string;
-        m5: string;
-      };
-      fdv_usd: string;
-      market_cap_usd: string | null;
-      volume_usd: {
-        h24: string;
-        h6: string;
-        h1: string;
-        m30: string;
-        m15: string;
-        m5: string;
-      };
-      reserve_in_usd: string;
-    };
-    relationships: {
-      base_token: {
-        data: {
-          id: string;
-          type: string;
-        };
-      };
-      quote_token: {
-        data: {
-          id: string;
-          type: string;
-        };
-      };
-    };
-  };
-}
+import { NYAX_POOL_ADDRESS } from '@/lib/nyaxMarketData';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Fetching NYAX price from GeckoTerminal...');
     
-    // Fetch data from GeckoTerminal API
-    const response = await fetch(GECKOTERMINAL_API_URL, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'NYALTX-Price/1.0',
-      },
-      // Cache for 30 seconds to avoid rate limits
-      next: { revalidate: 30 }
-    });
+    const { attributes, priceUsd } = await fetchNyaxMarketData();
 
-    if (!response.ok) {
-      console.error('❌ GeckoTerminal API error:', response.status, response.statusText);
-      throw new Error(`GeckoTerminal API error: ${response.status}`);
-    }
-
-    const data: GeckoTerminalPoolResponse = await response.json();
-    
-    if (!data?.data?.attributes) {
-      console.error('❌ Invalid response structure from GeckoTerminal');
-      throw new Error('Invalid response structure');
-    }
-
-    const attributes = data.data.attributes;
-    
     // Extract price data
-    const priceUsd = parseFloat(attributes.base_token_price_usd);
-    const priceChange24h = parseFloat(attributes.price_change_percentage.h24);
-    const volume24h = parseFloat(attributes.volume_usd.h24);
+    const priceChange24h = Number(attributes.price_change_percentage?.h24);
+    const volume24h = Number(attributes.volume_usd?.h24);
     const marketCap = attributes.market_cap_usd ? parseFloat(attributes.market_cap_usd) : null;
-    const fdv = parseFloat(attributes.fdv_usd);
+    const fdv = Number(attributes.fdv_usd);
 
     console.log('✅ NYAX price fetched successfully:', {
       price: priceUsd,
@@ -97,7 +28,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         symbol: 'NYAX',
-        contract_address: NYAX_CONTRACT_ADDRESS,
+        contract_address: DEFAULT_NEWS_NYAX_TOKEN_ADDRESS,
         pool_address: NYAX_POOL_ADDRESS,
         price_usd: priceUsd.toString(),
         price_change_24h: priceChange24h.toString(),

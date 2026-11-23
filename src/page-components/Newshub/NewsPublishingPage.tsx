@@ -57,11 +57,11 @@ const sandboxPlan: (typeof plans)[number] = {
   label: 'PayPal Sandbox',
   name: 'PayPal Checkout Test',
   price: '$1',
-  description: 'Test the complete News Hub submission and PayPal sandbox checkout flow.',
+  description: 'Test PayPal Sandbox checkout and save a labeled admin draft without publishing.',
   features: [
     'Use PayPal sandbox credentials',
-    'No live charges or published article',
-    'Verifies the $1 checkout and submission response',
+    'Saves an unpublished Sandbox test draft in Admin',
+    'Never publishes the test story on News Hub',
   ],
 };
 

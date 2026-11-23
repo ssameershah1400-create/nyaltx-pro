@@ -1,5 +1,12 @@
 export const NEWS_NYAX_DISCOUNT = 0.2;
 
+export function getNewsPlanBasePrice(plan: string, testPlanEnabled = false) {
+  if (plan === 'feed') return 99;
+  if (plan === 'slider' || plan === 'prem') return 199;
+  if (plan === 'test' && testPlanEnabled) return 1;
+  return null;
+}
+
 export function calculateNewsPrice(
   basePrice: number,
   promoDiscountPercent = 0,
