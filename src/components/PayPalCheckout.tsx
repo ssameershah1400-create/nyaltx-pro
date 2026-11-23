@@ -510,7 +510,9 @@ export default function PayPalCheckout({
             }}
           >
             {sandboxMode
-              ? 'PayPal Sandbox Test'
+              ? cardOnly
+                ? 'Sandbox Card Test'
+                : 'PayPal Sandbox Test'
               : cardOnly
                 ? 'Credit/Debit Card'
                 : 'PayPal Payment'}

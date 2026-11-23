@@ -134,15 +134,16 @@ const PUBLISH_PLANS: PlanItem[] = [
 
 const NEWS_TEST_PLAN: PlanItem = {
   id: 'test',
-  badge: 'PAYPAL SANDBOX',
-  name: 'PayPal Sandbox Checkout Test',
+  badge: '$1 PAYMENT TEST',
+  name: 'News Hub Payment Test',
   price: 1,
-  priceLabel: 'sandbox test charge',
-  ctaText: 'Test PayPal',
-  desc: 'A $1 PayPal Sandbox test that saves a marked admin draft without publishing a public article.',
+  priceLabel: 'test checkout',
+  ctaText: 'Test Payment',
+  desc: 'Test the News Hub checkout for $1. PayPal/card use Sandbox; USDC/NYAX use real Ethereum Mainnet funds. Every test story remains unpublished.',
   features: [
-    'Uses PayPal sandbox credentials only',
-    'Saves an unpublished Sandbox test draft in Admin',
+    'PayPal and card use PayPal Sandbox',
+    'USDC and NYAX use real Ethereum Mainnet payments',
+    'Saves an unpublished payment-test draft in Admin',
     'Never publishes the test story on News Hub',
   ],
 };
@@ -407,11 +408,17 @@ export default function SubmitNewsModalCorporate({
       const restoredPlan = allowedPlans(restoredType).some(item => item.id === savedDraft?.plan)
         ? savedDraft.plan
         : initialPlan;
+      const restoredPaymentMethod: PayMethod =
+        savedDraft.paymentMethod === 'card' ||
+        savedDraft.paymentMethod === 'usdc' ||
+        savedDraft.paymentMethod === 'nyax'
+          ? savedDraft.paymentMethod
+          : 'paypal';
       const promoCode = typeof savedDraft.promoCode === 'string' ? savedDraft.promoCode : '';
 
       setSubType(restoredType);
       setPlan(restoredPlan);
-      setPayMethod('paypal');
+      setPayMethod(restoredPaymentMethod);
       setHeadline(savedDraft.headline);
       setCategory(typeof savedDraft.category === 'string' ? savedDraft.category : 'NYAX');
       setSourceLink(typeof savedDraft.sourceLink === 'string' ? savedDraft.sourceLink : '');
@@ -431,8 +438,13 @@ export default function SubmitNewsModalCorporate({
           : null
       );
       setPendingPaypalPaymentId(
-        typeof savedDraft.paymentId === 'string' ? savedDraft.paymentId : ''
+        restoredPaymentMethod === 'paypal' || restoredPaymentMethod === 'card'
+          ? typeof savedDraft.paymentId === 'string'
+            ? savedDraft.paymentId
+            : ''
+          : ''
       );
+      setCryptoTxHash(typeof savedDraft.txHash === 'string' ? savedDraft.txHash : '');
       setModalStep(3);
       setFormError('');
       setImgError('');
@@ -616,7 +628,12 @@ export default function SubmitNewsModalCorporate({
     setModalStep(2);
   };
 
-  const saveNewsPaymentDraft = (paymentId?: string) => {
+  const saveNewsPaymentDraft = (
+    payment: Pick<
+      NewsPayPalCryptoDraft,
+      'paymentMethod' | 'paymentId' | 'txHash' | 'walletAddress'
+    > = {}
+  ) => {
     const draft: NewsPayPalCryptoDraft = {
       subType,
       plan,
@@ -629,9 +646,13 @@ export default function SubmitNewsModalCorporate({
       uploadedImg,
       promoCode: appliedPromo?.code || null,
       promoDiscountPercent: appliedPromo?.discountPercent ?? 0,
-      ...(paymentId ? { paymentId } : {}),
+      ...payment,
     };
-    sessionStorage.setItem(NEWS_PAYPAL_CRYPTO_DRAFT_KEY, JSON.stringify(draft));
+    try {
+      sessionStorage.setItem(NEWS_PAYPAL_CRYPTO_DRAFT_KEY, JSON.stringify(draft));
+    } catch (error) {
+      console.error('Could not save the pending News Hub payment draft:', error);
+    }
   };
 
   /* ---------- Submit (runs only AFTER payment, like token registration) ---------- */
@@ -808,6 +829,11 @@ export default function SubmitNewsModalCorporate({
       if (receipt.status !== 'success') {
         throw new Error('The Ethereum payment transaction did not succeed.');
       }
+      saveNewsPaymentDraft({
+        paymentMethod: method,
+        txHash,
+        walletAddress: walletAddress || undefined,
+      });
       await handlePayAndSubmit({
         paymentMethod: method,
         txHash,
@@ -1458,22 +1484,25 @@ export default function SubmitNewsModalCorporate({
               <label className={LABEL}>Select Payment Method</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {payTab('paypal', 'PayPal', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
-                {plan !== 'test' && (
-                  <>
-                    {payTab(
-                      'card',
-                      'Credit/Debit Card',
-                      'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
-                    )}
-                    {payTab('usdc', 'USDC', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
-                    {payTab(
-                      'nyax',
-                      'NYAX (20% off)',
-                      'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
-                    )}
-                  </>
+                {payTab(
+                  'card',
+                  'Credit/Debit Card',
+                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
+                )}
+                {payTab('usdc', 'USDC', 'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]')}
+                {payTab(
+                  'nyax',
+                  plan === 'test' ? 'NYAX' : 'NYAX (20% off)',
+                  'border-[#d72924] bg-[#d72924]/10 text-[#ff7772]'
                 )}
               </div>
+              {plan === 'test' && (
+                <p role="note" className="mt-2 text-xs text-amber-200">
+                  PayPal and card use PayPal Sandbox. USDC and NYAX send real funds on Ethereum
+                  Mainnet; the $1 payment is recorded as a paid order, while the story stays an
+                  unpublished draft.
+                </p>
+              )}
             </div>
 
             {/* Total Summary */}
@@ -1506,14 +1535,16 @@ export default function SubmitNewsModalCorporate({
                   <div>
                     <h4 className="text-sm font-semibold text-blue-400">
                       {plan === 'test'
-                        ? 'PayPal Sandbox Test'
+                        ? payMethod === 'card'
+                          ? 'Sandbox Credit/Debit Card'
+                          : 'PayPal Sandbox Test'
                         : payMethod === 'card'
                           ? 'Credit/Debit Card'
                           : 'PayPal Payment'}
                     </h4>
                     <p className="text-xs text-gray-400">
                       {plan === 'test'
-                        ? 'Use your PayPal Sandbox account. The test is saved as an unpublished admin draft.'
+                        ? 'Use PayPal Sandbox credentials. The story is saved as an unpublished payment-test draft.'
                         : payMethod === 'card'
                           ? 'Pay securely by credit or debit card through PayPal.'
                           : 'Complete payment securely with PayPal.'}
@@ -1561,11 +1592,7 @@ export default function SubmitNewsModalCorporate({
                       sandboxMode={plan === 'test'}
                       onBeforeCryptoRedirect={() => saveNewsPaymentDraft()}
                       onSuccess={(details: any) => {
-                        try {
-                          saveNewsPaymentDraft(details.id);
-                        } catch (error) {
-                          console.error('Could not save the verified News Hub payment:', error);
-                        }
+                        saveNewsPaymentDraft({ paymentId: details.id, paymentMethod: payMethod });
                         setPendingPaypalPaymentId(details.id);
                         return handlePayAndSubmit({
                           paymentMethod: 'paypal',
@@ -1641,11 +1668,13 @@ export default function SubmitNewsModalCorporate({
             {plan === 'test' ? (
               <>
                 <h3 className="text-2xl font-semibold text-white">
-                  PayPal sandbox test completed!
+                  Payment test completed!
                 </h3>
                 <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
-                  The Sandbox payment was verified and the story was saved as a clearly marked,
-                  unpublished draft in Admin. No public article was published.
+                  The selected payment was verified. PayPal/card use Sandbox; USDC/NYAX use real
+                  Ethereum Mainnet funds. The story was saved as an unpublished payment-test draft
+                  in Admin, and any real payment was recorded as a paid order. No public article
+                  was published.
                 </p>
               </>
             ) : (

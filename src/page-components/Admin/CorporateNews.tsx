@@ -115,6 +115,7 @@ interface NewsArticle {
   isPaid?: boolean;
   paymentVerified?: boolean;
   isSandboxTest?: boolean;
+  isTestPlan?: boolean;
 }
 
 const isPaidNewsSubmission = (article: NewsArticle) =>
@@ -136,7 +137,7 @@ function AdminCorporateNewsComponent() {
     'all'
   );
   const [submissionFilter, setSubmissionFilter] = useState<
-    'all' | 'paid' | 'corporate' | 'sandbox'
+    'all' | 'paid' | 'corporate' | 'sandbox' | 'payment-tests'
   >('all');
   const [newsSearch, setNewsSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -700,6 +701,9 @@ function AdminCorporateNewsComponent() {
   };
 
   const newsByType = news.filter(article => {
+    if (submissionFilter === 'payment-tests') {
+      return Boolean(article.isTestPlan || article.isSandboxTest);
+    }
     if (submissionFilter === 'sandbox') return Boolean(article.isSandboxTest);
     if (article.isSandboxTest) return false;
     if (submissionFilter === 'paid') return isPaidNewsSubmission(article);
@@ -719,6 +723,7 @@ function AdminCorporateNewsComponent() {
   const pagedNews = visibleNews.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const paidNewsCount = news.filter(isPaidNewsSubmission).length;
   const sandboxNewsCount = news.filter(article => article.isSandboxTest).length;
+  const paymentTestCount = news.filter(article => article.isTestPlan || article.isSandboxTest).length;
 
   return (
     <div className="min-w-0 space-y-6">
@@ -834,6 +839,7 @@ function AdminCorporateNewsComponent() {
               'Corporate News',
               hasLoadedNews ? news.length - paidNewsCount - sandboxNewsCount : null,
             ],
+            ['payment-tests', 'Payment Tests', hasLoadedNews ? paymentTestCount : null],
             ['sandbox', 'Sandbox Tests', hasLoadedNews ? sandboxNewsCount : null],
           ] as const
         ).map(([filter, label, count]) => (
@@ -843,7 +849,7 @@ function AdminCorporateNewsComponent() {
             variant={submissionFilter === filter ? 'secondary' : 'ghost'}
             onClick={() => {
               setSubmissionFilter(filter);
-              if (filter === 'sandbox') setStatusFilter('all');
+              if (filter === 'sandbox' || filter === 'payment-tests') setStatusFilter('all');
             }}
           >
             {label} ({count ?? '—'})
@@ -1282,9 +1288,11 @@ function AdminCorporateNewsComponent() {
                             {article.category}
                           </span>
                         )}
-                        {article.isSandboxTest && (
+                        {(article.isSandboxTest || article.isTestPlan) && (
                           <span className="mt-2 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-200">
-                            Sandbox test · not published
+                            {article.isSandboxTest
+                              ? 'PayPal Sandbox test · not published'
+                              : 'Payment test · not published'}
                           </span>
                         )}
                         {article.featuredInBanner && (
@@ -1312,6 +1320,25 @@ function AdminCorporateNewsComponent() {
                             <>
                               <span className="text-amber-200">PayPal Sandbox test</span>
                               <span>${article.amount} USD · not a live payment</span>
+                            </>
+                          ) : article.isTestPlan ? (
+                            <>
+                              <span className="text-amber-200">
+                                Real{' '}
+                                {article.paymentSource === 'paypal_crypto'
+                                  ? 'PayPal Crypto'
+                                  : article.paymentMethod?.toUpperCase() || 'Mainnet'}{' '}
+                                payment test
+                              </span>
+                              <span>
+                                ${article.amount} USD ·{' '}
+                                {article.paymentMethod === 'usdc' || article.paymentMethod === 'nyax'
+                                  ? 'Ethereum Mainnet payment'
+                                  : 'recorded as a paid order'}
+                              </span>
+                              {article.email ? (
+                                <span className="max-w-48 truncate">{article.email}</span>
+                              ) : null}
                             </>
                           ) : isPaidNewsSubmission(article) ? (
                             <>

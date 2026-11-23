@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     const paypalEnvironment = getPayPalEnvironment();
     const testPlanEnabled = isNewsSandboxTestEnabled();
-    const isSandboxTest = Boolean(isTest) && plan === 'test';
+    const isTestPlan = Boolean(isTest) && plan === 'test';
 
     if (!['paypal', 'usdc', 'nyax'].includes(paymentMethod)) {
       return NextResponse.json(
@@ -74,21 +74,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (plan === 'test' || isTest) {
-      if (!isSandboxTest || !testPlanEnabled || paypalEnvironment !== 'sandbox') {
+      if (!isTestPlan || !testPlanEnabled || paypalEnvironment !== 'sandbox') {
         return NextResponse.json(
-          { error: 'PayPal sandbox testing is only available in local sandbox mode.' },
-          { status: 400 }
-        );
-      }
-      if (paymentMethod !== 'paypal') {
-        return NextResponse.json(
-          { error: 'The News Hub sandbox test must be paid with PayPal.' },
+          { error: 'The $1 payment test is only available when enabled with PayPal Sandbox.' },
           { status: 400 }
         );
       }
     } else if (['test', 'testnet'].includes(paymentStatus)) {
       return NextResponse.json(
-        { error: 'Test payments are disabled outside the PayPal sandbox test plan.' },
+        { error: 'Test payments are disabled outside the News Hub payment test plan.' },
         { status: 400 }
       );
     }
@@ -178,7 +172,7 @@ export async function POST(req: NextRequest) {
             : `order_news_${existingSubmission._id}`;
         return NextResponse.json({
           success: true,
-          test: Boolean(existingSubmission.isSandboxTest),
+          test: Boolean(existingSubmission.isTestPlan || existingSubmission.isSandboxTest),
           id: existingSubmission._id.toString(),
           slug: existingSubmission.slug,
           orderId: existingOrderId,
@@ -187,7 +181,9 @@ export async function POST(req: NextRequest) {
           emailSent: Boolean(existingSubmission.paymentConfirmationEmailSent),
           message: existingSubmission.isSandboxTest
             ? 'This Sandbox test is already saved as an unpublished admin draft.'
-            : 'This paid story is already submitted and pending admin approval.',
+            : existingSubmission.isTestPlan
+              ? 'This payment test is already saved as an unpublished admin draft.'
+              : 'This paid story is already submitted and pending admin approval.',
         });
       }
     }
@@ -207,6 +203,7 @@ export async function POST(req: NextRequest) {
       if (existingSubmission) {
         return NextResponse.json({
           success: true,
+          test: Boolean(existingSubmission.isTestPlan || existingSubmission.isSandboxTest),
           id: existingSubmission._id.toString(),
           slug: existingSubmission.slug,
           orderId:
@@ -216,7 +213,9 @@ export async function POST(req: NextRequest) {
           orderRecorded: true,
           paymentVerified: true,
           emailSent: Boolean(existingSubmission.paymentConfirmationEmailSent),
-          message: 'This payment is already linked to a news submission.',
+          message: existingSubmission.isTestPlan
+            ? 'This payment test is already saved as an unpublished admin draft.'
+            : 'This payment is already linked to a news submission.',
         });
       }
     }
@@ -286,6 +285,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isSandboxTest = isTestPlan && paymentMethod === 'paypal';
+
     const db = await getDb();
     const newsCollection = db.collection('corporate_news');
 
@@ -299,7 +300,7 @@ export async function POST(req: NextRequest) {
     const resolvedPlanName =
       planName ||
       (plan === 'test'
-        ? 'PayPal Sandbox Test ($1)'
+        ? 'News Hub Payment Test ($1)'
         : plan === 'slider' || plan === 'prem'
           ? 'News Publishing & Distribution ($199)'
           : 'News Publishing ($99)');
@@ -323,6 +324,7 @@ export async function POST(req: NextRequest) {
       plan,
       planName: resolvedPlanName,
       isSandboxTest,
+      isTestPlan,
       orderId,
       paymentMethod,
       amount: submissionAmount,
@@ -339,12 +341,12 @@ export async function POST(req: NextRequest) {
       paymentProviderDetails: paymentVerification.providerDetails || null,
       paymentConfirmationEmailSent: false,
       approvalEmailSent: false,
-      status: isSandboxTest ? 'draft' : 'pending',
-      isPendingReview: !isSandboxTest,
+      status: isTestPlan ? 'draft' : 'pending',
+      isPendingReview: !isTestPlan,
       isPaid: true,
       featuredInBanner: plan === 'slider' || plan === 'prem',
       tags: [
-        ...(isSandboxTest ? ['SANDBOX TEST'] : []),
+        ...(isSandboxTest ? ['SANDBOX TEST'] : isTestPlan ? ['PAYMENT TEST'] : []),
         category,
         type === 'pr' ? 'Press Release' : 'Community',
       ],
@@ -433,6 +435,7 @@ export async function POST(req: NextRequest) {
           txHash: normalizedTxHash || undefined,
           author: submissionDoc.author,
           submittedAt: submissionDoc.createdAt.toISOString(),
+          isTestDraft: isTestPlan,
         });
 
         if (emailRes.success) {
@@ -455,15 +458,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      test: isSandboxTest,
+      test: isTestPlan,
       id: insertResult.insertedId.toString(),
       slug: finalSlug,
       orderId,
       orderRecorded,
       paymentVerified: true,
       emailSent,
-      message: isSandboxTest
-        ? 'PayPal Sandbox payment verified. The story was saved as an unpublished Sandbox test draft in Admin.'
+      message: isTestPlan
+        ? isSandboxTest
+          ? 'PayPal Sandbox payment verified. The story was saved as an unpublished payment-test draft in Admin.'
+          : 'Payment verified and recorded. The story was saved as an unpublished payment-test draft in Admin.'
         : 'Payment verified successfully. Your story has been submitted and is pending admin approval.',
     });
   } catch (error: any) {

@@ -12,5 +12,8 @@ export interface NewsPayPalCryptoDraft {
   uploadedImg: string | null;
   promoCode: string | null;
   promoDiscountPercent: number;
+  paymentMethod?: 'paypal' | 'card' | 'usdc' | 'nyax';
   paymentId?: string;
+  txHash?: string;
+  walletAddress?: string;
 }

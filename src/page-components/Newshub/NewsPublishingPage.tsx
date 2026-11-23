@@ -51,16 +51,19 @@ const plans: {
   },
 ];
 
-const sandboxPlan: (typeof plans)[number] = {
+const paymentTestPlan: (typeof plans)[number] = {
   id: 'test',
   number: '03',
-  label: 'PayPal Sandbox',
-  name: 'PayPal Checkout Test',
+  label: '$1 Payment Test',
+  name: 'News Hub Payment Test',
   price: '$1',
-  description: 'Test PayPal Sandbox checkout and save a labeled admin draft without publishing.',
+  description:
+    'Test every checkout option for $1. PayPal/card use Sandbox; USDC/NYAX use real Ethereum Mainnet funds. Stories remain unpublished drafts.',
   features: [
-    'Use PayPal sandbox credentials',
-    'Saves an unpublished Sandbox test draft in Admin',
+    'PayPal and card use PayPal Sandbox',
+    'USDC and NYAX use real Ethereum Mainnet payments',
+    'Real crypto payments are recorded as paid orders',
+    'Saves an unpublished payment-test draft in Admin',
     'Never publishes the test story on News Hub',
   ],
 };
@@ -76,7 +79,7 @@ export default function NewsPublishingPage({
 }) {
   const [selectedPlan, setSelectedPlan] = useState<PublishingPlan>(initialPlan);
   const [modalOpen, setModalOpen] = useState(openModalOnLoad);
-  const displayedPlans = enableTestPlan ? [...plans, sandboxPlan] : plans;
+  const displayedPlans = enableTestPlan ? [...plans, paymentTestPlan] : plans;
 
   useEffect(() => {
     const hasCryptoReturn = new URLSearchParams(window.location.search).has('paypalCryptoStatus');
@@ -264,7 +267,7 @@ export default function NewsPublishingPage({
                         ? 'Publish Your News — $99'
                         : plan.id === 'slider'
                           ? 'Get Featured — $199'
-                          : 'Test PayPal Sandbox — $1'}
+                          : 'Test Payment Methods — $1'}
                     </button>
                     <a className="nps-btn nps-btn-outline" href="https://www.nyaltx.pro/news-hub">
                       View News Hub

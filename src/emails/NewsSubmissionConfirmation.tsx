@@ -22,6 +22,7 @@ interface NewsSubmissionConfirmationProps {
   txHash?: string;
   author?: string;
   submittedAt?: string;
+  isTestDraft?: boolean;
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nyaltx.pro';
@@ -36,6 +37,7 @@ export default function NewsSubmissionConfirmation({
   txHash,
   author = 'Author',
   submittedAt,
+  isTestDraft = false,
 }: NewsSubmissionConfirmationProps) {
   const displayAmount = typeof amount === 'number' ? `$${amount.toFixed(2)} USD` : `$${amount} USD`;
   const displayDate = submittedAt ? new Date(submittedAt).toLocaleString('en-US', {
@@ -52,7 +54,10 @@ export default function NewsSubmissionConfirmation({
     <Html>
       <Head />
       <Body style={main}>
-        <Preview>News Submission &amp; Payment Received: {headline}</Preview>
+        <Preview>
+          {isTestDraft ? 'Payment Test Draft Saved' : 'News Submission & Payment Received'}:{' '}
+          {headline}
+        </Preview>
         <Container style={container}>
           <Section style={coverSection}>
             {/* Header */}
@@ -65,7 +70,11 @@ export default function NewsSubmissionConfirmation({
                 style={{ margin: '0 auto 10px', display: 'block' }}
               />
               <Heading style={logoText}>🚀 NYALTX NEWS HUB</Heading>
-              <Text style={headerSubtext}>Payment Confirmed &amp; Submission Received</Text>
+              <Text style={headerSubtext}>
+                {isTestDraft
+                  ? 'Payment Confirmed & Payment Test Draft Saved'
+                  : 'Payment Confirmed & Submission Received'}
+              </Text>
             </Section>
 
             {/* Upper Body */}
@@ -76,13 +85,17 @@ export default function NewsSubmissionConfirmation({
                   ✓ Payment Successfully Completed
                 </Text>
                 <Text style={successBannerSubtext}>
-                  Your news article has been submitted and is currently pending admin review.
+                  {isTestDraft
+                    ? 'Your real payment was recorded as a paid order. The story is saved as an unpublished payment-test draft.'
+                    : 'Your news article has been submitted and is currently pending admin review.'}
                 </Text>
               </Section>
 
               <Heading style={h1}>Article &amp; Order Confirmation</Heading>
               <Text style={mainText}>
-                Thank you for submitting your story to NYALTX News Hub. We have confirmed your payment and received your article details below:
+                {isTestDraft
+                  ? 'Your $1 payment has been confirmed and recorded. Your article details are saved below as a test draft and will not be published.'
+                  : 'Thank you for submitting your story to NYALTX News Hub. We have confirmed your payment and received your article details below:'}
               </Text>
 
               {/* Submission Details Card */}
@@ -118,22 +131,41 @@ export default function NewsSubmissionConfirmation({
                 </Section>
                 <Section style={infoRow}>
                   <Text style={infoLabel}>Current Status:</Text>
-                  <Text style={statusBadgePending}>⏳ Pending Admin Review</Text>
+                  <Text style={statusBadgePending}>
+                    {isTestDraft ? 'Payment Test Draft · Not Published' : '⏳ Pending Admin Review'}
+                  </Text>
                 </Section>
               </Section>
 
               {/* What Happens Next */}
               <Section style={nextStepsSection}>
-                <Text style={nextStepsTitle}>What Happens Next?</Text>
-                <Text style={listItem}>
-                  <strong>1. Editorial Review:</strong> Our administrative team will review your story for quality, formatting, and community guidelines within 24 hours.
-                </Text>
-                <Text style={listItem}>
-                  <strong>2. Live Publishing:</strong> Once approved, your article will be published live immediately to NYALTX News Hub and our official RSS syndication feed.
-                </Text>
-                <Text style={listItem}>
-                  <strong>3. Live Link Notification:</strong> You will receive a follow-up email the moment your story is approved and published, containing the direct link to your article.
-                </Text>
+                {isTestDraft ? (
+                  <>
+                    <Text style={nextStepsTitle}>Payment Test</Text>
+                    <Text style={listItem}>
+                      This real payment is recorded as a paid order. The story remains an
+                      unpublished draft and will not enter the editorial queue.
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={nextStepsTitle}>What Happens Next?</Text>
+                    <Text style={listItem}>
+                      <strong>1. Editorial Review:</strong> Our administrative team will review
+                      your story for quality, formatting, and community guidelines within 24 hours.
+                    </Text>
+                    <Text style={listItem}>
+                      <strong>2. Live Publishing:</strong> Once approved, your article will be
+                      published live immediately to NYALTX News Hub and our official RSS
+                      syndication feed.
+                    </Text>
+                    <Text style={listItem}>
+                      <strong>3. Live Link Notification:</strong> You will receive a follow-up email
+                      the moment your story is approved and published, containing the direct link
+                      to your article.
+                    </Text>
+                  </>
+                )}
               </Section>
 
               <Section style={buttonContainer}>

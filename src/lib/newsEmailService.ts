@@ -430,6 +430,7 @@ export interface SendSubmissionEmailParams {
   txHash?: string;
   author?: string;
   submittedAt?: string;
+  isTestDraft?: boolean;
 }
 
 /**
@@ -437,7 +438,19 @@ export interface SendSubmissionEmailParams {
  */
 export async function sendNewsSubmissionConfirmationEmail(params: SendSubmissionEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const { to, headline, category, planName, amount, paymentMethod, paymentId, txHash, author, submittedAt } = params;
+    const {
+      to,
+      headline,
+      category,
+      planName,
+      amount,
+      paymentMethod,
+      paymentId,
+      txHash,
+      author,
+      submittedAt,
+      isTestDraft,
+    } = params;
 
     if (!to || !to.includes('@')) {
       return { success: false, error: 'Invalid recipient email address' };
@@ -458,7 +471,8 @@ export async function sendNewsSubmissionConfirmationEmail(params: SendSubmission
         paymentId,
         txHash,
         author,
-        submittedAt
+        submittedAt,
+        isTestDraft,
       })
     );
 
@@ -468,7 +482,9 @@ export async function sendNewsSubmissionConfirmationEmail(params: SendSubmission
     const info = await transporter.sendMail({
       from: `"NYALTX News Desk" <${fromEmail}>`,
       to,
-      subject: `✓ News Submission & Payment Confirmed: "${headline.slice(0, 50)}${headline.length > 50 ? '...' : ''}"`,
+      subject: isTestDraft
+        ? `✓ Payment Test Recorded: "${headline.slice(0, 50)}${headline.length > 50 ? '...' : ''}"`
+        : `✓ News Submission & Payment Confirmed: "${headline.slice(0, 50)}${headline.length > 50 ? '...' : ''}"`,
       html,
     });
 
