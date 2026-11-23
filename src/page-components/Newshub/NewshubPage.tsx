@@ -349,13 +349,34 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
 
   useEffect(() => {
     let active = true;
-    fetch('/api/events?page=1&max=4')
+    fetch('/api/events?page=1&max=50')
       .then(async response => {
         if (!response.ok) throw new Error(`Failed to load events (${response.status})`);
-        return response.json();
+        const data: { body?: HubEvent[] } = await response.json();
+        return data;
       })
       .then(data => {
-        if (active) setHubEvents(Array.isArray(data.body) ? data.body.slice(0, 4) : []);
+        if (!active) return;
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const lastDay = new Date(today);
+        lastDay.setDate(lastDay.getDate() + 7);
+        const upcomingEvents = (Array.isArray(data.body) ? data.body : [])
+          .filter(event => {
+            if (!event.date_event) return false;
+            const date = new Date(event.date_event);
+            if (!Number.isFinite(date.getTime())) return false;
+            const eventDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            return eventDay >= today && eventDay <= lastDay;
+          })
+          .sort(
+            (first, second) =>
+              Date.parse(first.date_event || '') - Date.parse(second.date_event || '')
+          )
+          .slice(0, 4);
+
+        setHubEvents(upcomingEvents);
       })
       .catch(error => {
         console.error('Newshub events fetch error:', error);
@@ -469,8 +490,8 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
         <section className="nh-events-module" aria-labelledby="nh-events-title">
           <div className="nh-discovery-heading">
             <div>
-              <span className="nh-kicker">Calendar</span>
-              <h2 id="nh-events-title">Crypto events</h2>
+              <span className="nh-kicker">Next 7 days</span>
+              <h2 id="nh-events-title">Upcoming crypto events</h2>
             </div>
           </div>
           <div className="nh-events-list">
