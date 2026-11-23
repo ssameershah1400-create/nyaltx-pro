@@ -1184,7 +1184,7 @@ const STYLES = `
   .nh-feature-grid:not(.has-side) { grid-template-columns: 1fr; }
   .nh-feature-primary { display: flex; min-width: 0; min-height: 320px; align-items: center; justify-content: center; }
   .nh-feature-primary .nh-slider, .nh-lead-story { width: 100%; height: clamp(320px, 32vw, 440px); min-height: 320px; }
-  .nh-feature-primary .nh-slider { margin: 0; border-radius: 12px; }
+  .nh-feature-primary .nh-slider { margin: 20px 0 0; border-radius: 12px; }
   .nh-lead-story { position: relative; display: block; overflow: hidden; border: 1px solid var(--nh-border); border-radius: 12px; background: #090f18; color: #fff; text-decoration: none; }
   .nh-lead-story > img, .nh-lead-story-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .nh-lead-story-sponsored > img { object-fit: contain; }
