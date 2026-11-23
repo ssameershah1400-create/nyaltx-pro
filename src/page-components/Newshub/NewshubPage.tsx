@@ -89,17 +89,6 @@ const RSS_URL = 'https://www.nyaltx.pro/rss.xml';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function slideBackground(slide: BannerSlide, withOverlay = true): string {
-  const reliableImg = slide.imageUrl ? toReliableIpfsUrl(slide.imageUrl) : '';
-  if (reliableImg) {
-    const overlay = withOverlay
-      ? 'linear-gradient(to top,rgba(2,6,12,0.88) 0%,rgba(2,6,12,0.18) 65%,rgba(2,6,12,0) 100%),'
-      : '';
-    return `${overlay}url(${reliableImg}) center/cover no-repeat`;
-  }
-  return GRADS[slide.gradientIndex ?? 0] ?? GRADS[0];
-}
-
 function articleThumbnail(art: Article): string | null {
   if (art.featuredImage) {
     const url = toReliableIpfsUrl(art.featuredImage);
@@ -595,14 +584,7 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
       </div>
     ) : null;
   const activeBannerContent = activeBanner ? (
-    <div
-      className={`nh-slide${activeBannerImage ? ' has-image' : ''}`}
-      style={{
-        background: activeBannerImage
-          ? (GRADS[activeBanner.gradientIndex ?? 0] ?? GRADS[0])
-          : slideBackground(activeBanner, false),
-      }}
-    >
+    <div className={`nh-slide${activeBannerImage ? ' has-image' : ''}`}>
       {activeBannerImage && (
         <img
           className="nh-slide-image"
@@ -613,7 +595,6 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
           }}
         />
       )}
-      <div aria-hidden="true" className="nh-slide-shade" />
       <motion.div
         initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1238,7 +1219,7 @@ const STYLES = `
   .nh-slider {
     position: relative; height: clamp(320px, 32vw, 440px); border-radius: 14px; overflow: hidden;
     border: 1px solid var(--nh-border); margin-bottom: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    background: #070b12; box-shadow: 0 8px 24px rgba(0,0,0,.35);
   }
   .nh-slide-wrapper { position: absolute; inset: 0; width: 100%; }
   .nh-slide-link { display: block; width: 100%; height: 100%; text-decoration: none; color: inherit; }
@@ -1247,9 +1228,9 @@ const STYLES = `
     display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
     color: #fff;
   }
-  .nh-slide.has-image { display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: 20px 32px 22px; }
-  .nh-slide-image { position: relative; z-index: 1; display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; object-position: center; }
-  .nh-slide-shade { position: absolute; z-index: 2; inset: 35% 0 0; background: linear-gradient(180deg, transparent, rgba(2,6,12,.78)); pointer-events: none; }
+  .nh-slide.has-image { display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: 0; }
+  .nh-slide-image { position: relative; z-index: 1; display: block; width: 100%; height: 100%; min-height: 0; object-fit: fill; object-position: center; }
+  .nh-slide.has-image .nh-slide-copy { width: 100%; max-width: none; padding: 18px 32px 22px; }
   .nh-slide-copy { position: relative; z-index: 3; align-self: flex-start; width: fit-content; max-width: min(760px, 88%); color: #fff; }
   .nh-slide h2 { margin: 6px 0; font-family: Georgia, Cambria, "Times New Roman", serif; font-size: clamp(20px, 2.5vw, 30px); max-width: 680px; font-weight: 500; line-height: 1.02; letter-spacing: -.035em; }
   .nh-slide h2 span { padding: 0; background: transparent; color: #fff; }
