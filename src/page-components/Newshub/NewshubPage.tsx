@@ -231,6 +231,7 @@ function EventStory({ event }: { event: HubEvent }) {
   const title = typeof event.title === 'string' ? event.title : event.title.en || 'Crypto event';
   const token = event.coins?.find(coin => coin.image);
   const image = token?.image || event.proof;
+  const coinSymbols = event.coins?.map(coin => coin.symbol).filter(Boolean).join(' · ');
   const date = event.displayed_date || (
     event.date_event
       ? new Date(event.date_event).toLocaleDateString('en-US', {
@@ -240,33 +241,61 @@ function EventStory({ event }: { event: HubEvent }) {
         })
       : 'Date to be announced'
   );
-  const content = (
-    <>
-      {image && (
-        <span className="nh-event-image">
-          <span
-            aria-hidden="true"
-            className="nh-event-image-backdrop"
-            style={{ backgroundImage: `url("${image}")` }}
-          />
-          <img src={image} alt={token?.symbol ? `${token.symbol} token` : ''} loading="lazy" />
-        </span>
-      )}
-      <span className="nh-event-date">{date}</span>
-      <span className="nh-event-title">{title}</span>
-      <span className="nh-event-meta">
-        {event.coins?.map(coin => coin.symbol).filter(Boolean).join(' · ') || 'Crypto event'}
-        {event.important ? ' · Important' : ''}
-      </span>
-    </>
+  const imageContent = image ? (
+    <span className="nh-small-image">
+      <span
+        aria-hidden="true"
+        className="nh-small-image-backdrop"
+        style={{ backgroundImage: `url("${image}")` }}
+      />
+      <img
+        className="nh-small-image-main"
+        src={image}
+        alt={token?.symbol ? `${token.symbol} token` : title}
+        loading="lazy"
+      />
+    </span>
+  ) : (
+    <span className="nh-discovery-image-fallback" style={{ background: GRADS[0] }} />
   );
-
-  return event.source ? (
-    <a className="nh-event-card" href={event.source} target="_blank" rel="noopener noreferrer">
-      {content}
+  const imageLink = event.source ? (
+    <a
+      className="nh-discovery-image"
+      href={event.source}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Read event: ${title}`}
+    >
+      {imageContent}
     </a>
   ) : (
-    <div className="nh-event-card">{content}</div>
+    <span className="nh-discovery-image">{imageContent}</span>
+  );
+  const eventTitle = event.source ? (
+    <a className="nh-article-link" href={event.source} target="_blank" rel="noopener noreferrer">
+      {title}
+    </a>
+  ) : (
+    title
+  );
+
+  return (
+    <article className="nh-discovery-card nh-event-card">
+      {imageLink}
+      <div className="nh-discovery-copy">
+        <span className="nh-event-date">{date}</span>
+        <h3 className="nh-event-title">{eventTitle}</h3>
+        <div className="nh-discovery-byline nh-event-meta">
+          <span>{coinSymbols || 'Crypto event'}</span>
+          {event.important && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>Important</span>
+            </>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -1253,15 +1282,11 @@ const STYLES = `
   .nh-inline-events .nh-events-module { margin-top: 0; border-top: 0; padding-top: 0; }
   .nh-feature-trending .nh-discovery-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .nh-events-module { margin-top: 20px; border-top: 1px solid var(--nh-border); padding-top: 16px; }
-  .nh-events-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .nh-event-card { display: flex; min-width: 0; flex-direction: column; gap: 7px; overflow: hidden; border: 1px solid var(--nh-border); border-radius: 9px; background: var(--nh-card); padding: 10px; color: inherit; text-decoration: none; transition: border-color .2s, background-color .2s; }
-  .nh-event-card:hover { border-color: var(--nh-accent); background: #111c2c; }
-  .nh-event-image { position: relative; display: flex; aspect-ratio: 16 / 9; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; background: #090f18; }
-  .nh-event-image-backdrop { position: absolute; inset: -8px; background-position: center; background-size: cover; filter: blur(12px) brightness(.45); transform: scale(1.08); }
-  .nh-event-image img { position: relative; z-index: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
-  .nh-event-date { color: var(--nh-accent); font-size: 11px; font-weight: 700; }
-  .nh-event-title { display: -webkit-box; overflow: hidden; color: var(--nh-text); font-size: 14px; font-weight: 600; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-  .nh-event-meta { overflow: hidden; color: var(--nh-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .nh-events-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .nh-event-card { transition: color .2s ease; }
+  .nh-event-card:hover .nh-article-link { color: var(--nh-accent); }
+  .nh-event-date { display: block; margin-bottom: 4px; color: #67e8f9; font-size: 10px; font-weight: 700; }
+  .nh-event-meta { margin-top: 6px; }
   .nh-feature-trending { margin: 18px 0 24px; }
   .nh-inline-topics { grid-column: 1 / -1; }
   .nh-discovery-module, .nh-topic-section { min-width: 0; border-top: 1px solid var(--nh-border); padding-top: 14px; }
