@@ -1068,6 +1068,13 @@ export default function NewshubPage({ initialData }: { initialData?: NewshubInit
                     </button>
                   </div>
                 )}
+                {!loading && articles.length > 0 && (
+                  <div className="nh-row" style={{ justifyContent: 'center', marginTop: 24 }}>
+                    <Link href="/newshub/submit" className="nh-btn nh-btn-pri nh-submit-btn">
+                      + Submit news
+                    </Link>
+                  </div>
+                )}
               </div>
             </main>
 
