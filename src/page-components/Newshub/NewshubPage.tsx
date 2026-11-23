@@ -1121,7 +1121,7 @@ const STYLES = `
   .nh-btn:disabled { opacity: .5; cursor: not-allowed; }
   .nh-btn-pri { background: var(--nh-accent); border-color: var(--nh-accent); color: var(--nh-accent-ink); }
   .nh-btn-pri:hover { background: #67e8f9; }
-  .nh-submit-btn { width: fit-content; padding: 8px 24px; border: 0; border-radius: 0; background: var(--nh-accent); color: var(--nh-accent-ink); font-style: italic; font-weight: 300; box-shadow: 3px 3px 0 #e6edf6; transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
+  .nh-submit-btn { width: fit-content; padding: 8px 24px; border: 0; border-radius: 0; background: var(--nh-accent); color: var(--nh-accent-ink); font-style: italic; font-weight: 700; box-shadow: 3px 3px 0 #e6edf6; transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
   .nh-submit-btn:hover { transform: translate(3px, 3px); box-shadow: none; background: #67e8f9; }
   .nh-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
