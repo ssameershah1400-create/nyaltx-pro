@@ -9,7 +9,7 @@ import {
 import { findUsablePromoCode } from '@/lib/newsPromoCodes';
 import { calculateNewsPrice, getNewsPlanBasePrice } from '@/lib/newsPricing';
 import { getNewshubCategories } from '@/lib/newshubInitialData';
-import { getPayPalEnvironment, isNewsSandboxTestEnabled } from '@/lib/paypalEnvironment';
+import { getNewsPaymentTestMode, getPayPalEnvironment } from '@/lib/paypalEnvironment';
 
 interface NewsPayPalCheckoutOrder {
   paypalOrderId: string;
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       typeof txHash === 'string' && txHash.trim() ? txHash.trim().toLowerCase() : null;
 
     const paypalEnvironment = getPayPalEnvironment();
-    const testPlanEnabled = isNewsSandboxTestEnabled();
+    const testPlanEnabled = getNewsPaymentTestMode() !== null;
     const isTestPlan = Boolean(isTest) && plan === 'test';
 
     if (!['paypal', 'usdc', 'nyax'].includes(paymentMethod)) {
@@ -74,9 +74,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (plan === 'test' || isTest) {
-      if (!isTestPlan || !testPlanEnabled || paypalEnvironment !== 'sandbox') {
+      if (!isTestPlan || !testPlanEnabled) {
         return NextResponse.json(
-          { error: 'The $1 payment test is only available when enabled with PayPal Sandbox.' },
+          { error: 'The $1 payment test is not enabled for this checkout environment.' },
           { status: 400 }
         );
       }
@@ -285,7 +285,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isSandboxTest = isTestPlan && paymentMethod === 'paypal';
+    const isSandboxTest =
+      isTestPlan && paymentMethod === 'paypal' && paypalEnvironment === 'sandbox';
 
     const db = await getDb();
     const newsCollection = db.collection('corporate_news');

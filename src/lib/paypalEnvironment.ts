@@ -14,10 +14,10 @@ export function getPayPalEnvironment(): PayPalEnvironment {
   return 'sandbox';
 }
 
-export function isNewsSandboxTestEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== 'production' &&
-    getPayPalEnvironment() === 'sandbox' &&
-    process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN === 'true'
-  );
+export function getNewsPaymentTestMode(): PayPalEnvironment | null {
+  if (process.env.NEXT_PUBLIC_ENABLE_NEWS_TEST_PLAN !== 'true') return null;
+
+  const paypalEnvironment = getPayPalEnvironment();
+  const expectedEnvironment = process.env.NODE_ENV === 'production' ? 'live' : 'sandbox';
+  return paypalEnvironment === expectedEnvironment ? paypalEnvironment : null;
 }

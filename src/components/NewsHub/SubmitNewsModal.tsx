@@ -61,6 +61,7 @@ export interface SubmitNewsModalProps {
   initialType?: 'news' | 'pr';
   initialPlan?: string;
   enableTestPlan?: boolean;
+  testPlanUsesSandbox?: boolean;
   onSuccess?: (item: any) => void;
 }
 
@@ -132,21 +133,23 @@ const PUBLISH_PLANS: PlanItem[] = [
   },
 ];
 
-const NEWS_TEST_PLAN: PlanItem = {
+const getNewsTestPlan = (usesSandbox: boolean): PlanItem => ({
   id: 'test',
   badge: '$1 PAYMENT TEST',
   name: 'News Hub Payment Test',
   price: 1,
   priceLabel: 'test checkout',
   ctaText: 'Test Payment',
-  desc: 'Test the News Hub checkout for $1. PayPal/card use Sandbox; USDC/NYAX use real Ethereum Mainnet funds. Every test story remains unpublished.',
+  desc: `Test the News Hub checkout for $1. PayPal/card ${usesSandbox ? 'use Sandbox' : 'charge $1 through live PayPal'}; USDC/NYAX use real Ethereum Mainnet funds. Every test story remains unpublished.`,
   features: [
-    'PayPal and card use PayPal Sandbox',
+    usesSandbox
+      ? 'PayPal and card use PayPal Sandbox'
+      : 'PayPal and card charge $1 through live PayPal',
     'USDC and NYAX use real Ethereum Mainnet payments',
     'Saves an unpublished payment-test draft in Admin',
     'Never publishes the test story on News Hub',
   ],
-};
+});
 
 const PLANS_CONFIG: Record<'news' | 'pr', PlanItem[]> = {
   news: PUBLISH_PLANS,
@@ -258,6 +261,7 @@ export default function SubmitNewsModalCorporate({
   initialType = 'news',
   initialPlan = 'feed',
   enableTestPlan = false,
+  testPlanUsesSandbox = true,
   onSuccess,
 }: SubmitNewsModalProps) {
   const [modalStep, setModalStep] = useState(1);
@@ -396,7 +400,9 @@ export default function SubmitNewsModalCorporate({
     }
 
     const allowedPlans = (type: 'news' | 'pr') =>
-      enableTestPlan ? [...PLANS_CONFIG[type], NEWS_TEST_PLAN] : PLANS_CONFIG[type];
+      enableTestPlan
+        ? [...PLANS_CONFIG[type], getNewsTestPlan(testPlanUsesSandbox)]
+        : PLANS_CONFIG[type];
     if (
       savedDraft &&
       typeof savedDraft.headline === 'string' &&
@@ -463,7 +469,7 @@ export default function SubmitNewsModalCorporate({
     setAppliedPromo(null);
     setPromoError('');
     setPendingPaypalPaymentId('');
-  }, [enableTestPlan, initialPlan, initialType, isOpen]);
+  }, [enableTestPlan, initialPlan, initialType, isOpen, testPlanUsesSandbox]);
 
   useEffect(() => {
     void refreshNyaxPrice();
@@ -473,7 +479,7 @@ export default function SubmitNewsModalCorporate({
 
   // Price calculations
   const currentPlans = enableTestPlan
-    ? [...PLANS_CONFIG[subType], NEWS_TEST_PLAN]
+    ? [...PLANS_CONFIG[subType], getNewsTestPlan(testPlanUsesSandbox)]
     : PLANS_CONFIG[subType];
   const activePlanObj = currentPlans.find(p => p.id === plan) || currentPlans[0];
   const basePrice = activePlanObj.price;
@@ -1498,9 +1504,11 @@ export default function SubmitNewsModalCorporate({
               </div>
               {plan === 'test' && (
                 <p role="note" className="mt-2 text-xs text-amber-200">
-                  PayPal and card use PayPal Sandbox. USDC and NYAX send real funds on Ethereum
-                  Mainnet; the $1 payment is recorded as a paid order, while the story stays an
-                  unpublished draft.
+                  {testPlanUsesSandbox
+                    ? 'PayPal and card use PayPal Sandbox.'
+                    : 'PayPal and card charge $1 through live PayPal.'}{' '}
+                  USDC and NYAX send real funds on Ethereum Mainnet; real payments are recorded as
+                  paid orders, while the story stays an unpublished draft.
                 </p>
               )}
             </div>
@@ -1536,15 +1544,21 @@ export default function SubmitNewsModalCorporate({
                     <h4 className="text-sm font-semibold text-blue-400">
                       {plan === 'test'
                         ? payMethod === 'card'
-                          ? 'Sandbox Credit/Debit Card'
-                          : 'PayPal Sandbox Test'
+                          ? testPlanUsesSandbox
+                            ? 'Sandbox Credit/Debit Card'
+                            : 'Credit/Debit Card'
+                          : testPlanUsesSandbox
+                            ? 'PayPal Sandbox Test'
+                            : 'PayPal Payment Test'
                         : payMethod === 'card'
                           ? 'Credit/Debit Card'
                           : 'PayPal Payment'}
                     </h4>
                     <p className="text-xs text-gray-400">
                       {plan === 'test'
-                        ? 'Use PayPal Sandbox credentials. The story is saved as an unpublished payment-test draft.'
+                        ? testPlanUsesSandbox
+                          ? 'Use PayPal Sandbox credentials. The story is saved as an unpublished payment-test draft.'
+                          : 'Use live PayPal checkout. Your real payment is recorded, and the story is saved as an unpublished payment-test draft.'
                         : payMethod === 'card'
                           ? 'Pay securely by credit or debit card through PayPal.'
                           : 'Complete payment securely with PayPal.'}
@@ -1589,7 +1603,7 @@ export default function SubmitNewsModalCorporate({
                         promoCode: appliedPromo?.code || null,
                       }}
                       cardOnly={payMethod === 'card'}
-                      sandboxMode={plan === 'test'}
+                      sandboxMode={plan === 'test' && testPlanUsesSandbox}
                       onBeforeCryptoRedirect={() => saveNewsPaymentDraft()}
                       onSuccess={(details: any) => {
                         saveNewsPaymentDraft({ paymentId: details.id, paymentMethod: payMethod });
@@ -1671,10 +1685,10 @@ export default function SubmitNewsModalCorporate({
                   Payment test completed!
                 </h3>
                 <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
-                  The selected payment was verified. PayPal/card use Sandbox; USDC/NYAX use real
-                  Ethereum Mainnet funds. The story was saved as an unpublished payment-test draft
-                  in Admin, and any real payment was recorded as a paid order. No public article
-                  was published.
+                  The selected payment was verified. PayPal/card use{' '}
+                  {testPlanUsesSandbox ? 'Sandbox' : 'live PayPal'}; USDC/NYAX use real Ethereum
+                  Mainnet funds. The story was saved as an unpublished payment-test draft in Admin,
+                  and any real payment was recorded as a paid order. No public article was published.
                 </p>
               </>
             ) : (

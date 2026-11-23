@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { findUsablePromoCode } from '@/lib/newsPromoCodes';
 import { calculateNewsPrice, getNewsPlanBasePrice } from '@/lib/newsPricing';
-import { getPayPalEnvironment, isNewsSandboxTestEnabled } from '@/lib/paypalEnvironment';
+import { getNewsPaymentTestMode } from '@/lib/paypalEnvironment';
 import {
   getPayPalAccessToken,
   PayPalCryptoAuthenticationError,
@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const planPrice = getNewsPlanBasePrice(plan, isNewsSandboxTestEnabled());
+    const planPrice = getNewsPlanBasePrice(plan, getNewsPaymentTestMode() !== null);
     if (planPrice === null) {
       return NextResponse.json({ error: 'This News Hub plan is unavailable.' }, { status: 400 });
     }
-    if (plan === 'test' && (getPayPalEnvironment() !== 'sandbox' || promoCode)) {
+    if (plan === 'test' && promoCode) {
       return NextResponse.json(
-        { error: 'The Sandbox test requires PayPal Sandbox and does not accept promo codes.' },
+        { error: 'The payment test does not accept promo codes.' },
         { status: 400 }
       );
     }

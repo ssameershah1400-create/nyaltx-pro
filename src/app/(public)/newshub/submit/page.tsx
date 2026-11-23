@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import NewsPublishingPage from '@/page-components/Newshub/NewsPublishingPage';
-import { isNewsSandboxTestEnabled } from '@/lib/paypalEnvironment';
+import { getNewsPaymentTestMode } from '@/lib/paypalEnvironment';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.nyaltx.pro'),
@@ -26,7 +26,8 @@ interface NewsPublishingRouteProps {
 
 export default async function NewsPublishingRoute({ searchParams }: NewsPublishingRouteProps) {
   const { modal, plan } = await searchParams;
-  const testPlanEnabled = isNewsSandboxTestEnabled();
+  const testPlanMode = getNewsPaymentTestMode();
+  const testPlanEnabled = testPlanMode !== null;
   const initialPlan =
     plan === 'slider' ? 'slider' : plan === 'test' && testPlanEnabled ? 'test' : 'feed';
 
@@ -35,6 +36,7 @@ export default async function NewsPublishingRoute({ searchParams }: NewsPublishi
       openModalOnLoad={modal === 'open'}
       initialPlan={initialPlan}
       enableTestPlan={testPlanEnabled}
+      testPlanUsesSandbox={testPlanMode === 'sandbox'}
     />
   );
 }
