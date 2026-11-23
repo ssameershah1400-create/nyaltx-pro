@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { IPFS_GATEWAY } from '@/utils/ipfsUpload';
 
 export async function POST(request: NextRequest) {
   try {
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       hash: pinataData.IpfsHash,
-      url: `https://gateway.pinata.cloud/ipfs/${pinataData.IpfsHash}`,
+      url: `${IPFS_GATEWAY}/ipfs/${pinataData.IpfsHash}`,
       size: file.size,
       name: file.name,
       type: file.type

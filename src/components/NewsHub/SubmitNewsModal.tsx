@@ -9,6 +9,7 @@ import { calculateNewsPrice, NEWS_NYAX_DISCOUNT } from '@/lib/newsPricing';
 import { USDC_NYAX_RECEIVER } from '@/lib/paymentAddresses';
 import { useAppKit } from '@reown/appkit/react';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react';
+import { toReliableIpfsUrl } from '@/utils/ipfsUpload';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import 'quill/dist/quill.snow.css';
@@ -155,9 +156,6 @@ const NYAX_TOKEN =
   (process.env.NEXT_PUBLIC_NYAX_TOKEN_ADDRESS as `0x${string}` | undefined) ?? DEFAULT_NYAX;
 const USDC_TOKEN = DEFAULT_USDC;
 const PAYMENT_CHAIN_ID = 1;
-
-const convertToWorkingIPFSUrl = (url: string) =>
-  url.replace('https://gateway.pinata.cloud/ipfs/', 'https://ipfs.io/ipfs/');
 
 const PayPalIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -564,7 +562,7 @@ export default function SubmitNewsModalCorporate({
 
       const data = await response.json();
       const ipfsUrl = data.url || `https://gateway.pinata.cloud/ipfs/${data.hash}`;
-      setUploadedImg(ipfsUrl);
+      setUploadedImg(toReliableIpfsUrl(ipfsUrl));
       setImgSuccess('Image uploaded to IPFS successfully!');
       setSelectedFile(null);
       clearFileInput();
@@ -649,7 +647,7 @@ export default function SubmitNewsModalCorporate({
       summary: summary.trim(),
       content: bodyHtml,
       sourceUrl: sourceLink.trim() || null,
-      featuredImage: uploadedImg,
+      featuredImage: uploadedImg ? toReliableIpfsUrl(uploadedImg) : null,
       coverColor: selectedSwatch,
       author: subType === 'pr' ? 'Press Release' : 'NYALTX',
       email: userEmail.trim(),
@@ -1173,22 +1171,12 @@ export default function SubmitNewsModalCorporate({
                     type="url"
                     value={uploadedImg || ''}
                     onChange={e => setUploadedImg(e.target.value || null)}
+                    onBlur={e =>
+                      setUploadedImg(e.target.value ? toReliableIpfsUrl(e.target.value) : null)
+                    }
                     className={`flex-1 ${INPUT}`}
                     placeholder="https://example.com/image.jpg or IPFS URL"
                   />
-                  {uploadedImg?.includes('gateway.pinata.cloud') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUploadedImg(convertToWorkingIPFSUrl(uploadedImg));
-                        setImgSuccess('URL converted to working IPFS gateway!');
-                      }}
-                      className="px-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 rounded-lg border border-yellow-600/30 transition-all duration-200 text-sm font-medium whitespace-nowrap"
-                      title="Convert Pinata gateway URL to working IPFS.io gateway"
-                    >
-                      Fix URL
-                    </button>
-                  )}
                 </div>
               </div>
 

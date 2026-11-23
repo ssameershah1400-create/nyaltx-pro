@@ -287,8 +287,8 @@ export const uploadToIPFS = async (
   };
 };
 
-/** Prefer Pinata — public ipfs.io is rate-limited / unreliable for images */
-export const IPFS_GATEWAY = 'https://gateway.pinata.cloud';
+/** Use Filebase's public gateway to avoid rate limits on Pinata's shared gateway. */
+export const IPFS_GATEWAY = 'https://ipfs.filebase.io';
 
 // Utility to get IPFS URL from hash
 export const getIPFSUrl = (hash: string, gateway = IPFS_GATEWAY): string => {
@@ -312,7 +312,7 @@ export const extractIPFSHash = (url: string): string | null => {
 };
 
 /**
- * Rewrite any IPFS gateway URL (ipfs.io, dweb.link, etc.) to a working Pinata gateway.
+ * Rewrite any IPFS gateway URL (ipfs.io, dweb.link, Pinata, etc.) to Filebase.
  * Non-IPFS URLs are returned unchanged.
  */
 export const toReliableIpfsUrl = (url?: string | null): string => {
