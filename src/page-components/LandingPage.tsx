@@ -173,9 +173,9 @@ export default function LandingPage(props?: LandingPageProps) {
                 <div className="absolute -inset-6 rounded-3xl bg-gradient-to-tr from-cyan-500/10 to-indigo-500/10 blur-2xl" />
                 <Image
                   src={landingContent?.hero?.backgroundImage || '/hero2.png'}
-                  alt="NYALTX Logo"
-                  width={300}
-                  height={300}
+                  alt="NYALTX, New York Alt Exchange digital asset news and events"
+                  width={360}
+                  height={180}
                   priority
                   className="relative h-auto w-[580px]"
                 />
