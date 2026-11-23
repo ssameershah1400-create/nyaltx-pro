@@ -1182,8 +1182,8 @@ const STYLES = `
   .nh-trending-story:hover strong { color: #67e8f9; }
   .nh-feature-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(250px, 1fr); align-items: stretch; gap: 12px; }
   .nh-feature-grid:not(.has-side) { grid-template-columns: 1fr; }
-  .nh-feature-primary { min-width: 0; min-height: 320px; }
-  .nh-feature-primary .nh-slider, .nh-lead-story { height: clamp(320px, 32vw, 440px); min-height: 320px; }
+  .nh-feature-primary { display: flex; min-width: 0; min-height: 320px; align-items: center; justify-content: center; }
+  .nh-feature-primary .nh-slider, .nh-lead-story { width: 100%; height: clamp(320px, 32vw, 440px); min-height: 320px; }
   .nh-feature-primary .nh-slider { margin: 0; border-radius: 12px; }
   .nh-lead-story { position: relative; display: block; overflow: hidden; border: 1px solid var(--nh-border); border-radius: 12px; background: #090f18; color: #fff; text-decoration: none; }
   .nh-lead-story > img, .nh-lead-story-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
