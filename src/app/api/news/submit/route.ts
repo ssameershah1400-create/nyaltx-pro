@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCollection } from '@/lib/mongodb';
 import { Order } from '@/app/api/admin/orders/route';
-import { verifyNewsPayment, sendNewsSubmissionConfirmationEmail } from '@/lib/newsEmailService';
+import {
+  verifyNewsPayment,
+  sendNewsSubmissionConfirmationEmail,
+  type PaymentVerificationResult,
+} from '@/lib/newsEmailService';
 import { findUsablePromoCode } from '@/lib/newsPromoCodes';
 import { calculateNewsPrice, getNewsPlanBasePrice } from '@/lib/newsPricing';
 import { getNewshubCategories } from '@/lib/newshubInitialData';
 import { getPayPalEnvironment, isNewsSandboxTestEnabled } from '@/lib/paypalEnvironment';
+
+interface NewsPayPalCheckoutOrder {
+  paypalOrderId: string;
+  tier: string;
+  type: 'news' | 'pr';
+  plan: string;
+  promoCode?: string;
+  amount: string;
+  currency: 'USD';
+  status: 'creating' | 'created' | 'captured' | 'failed';
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -206,14 +221,59 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Verify Payment on Backend before proceeding
-    const paymentVerification = await verifyNewsPayment({
-      paymentMethod,
-      paymentId: paymentId || null,
-      txHash: normalizedTxHash,
-      amount: submissionAmount,
-      paymentStatus,
-    });
+    // A server-captured News Hub order is already provider-verified; don't make submission
+    // depend on a second PayPal API request succeeding.
+    let paymentVerification: PaymentVerificationResult;
+    const paypalOrderId = typeof paymentId === 'string' ? paymentId.trim() : '';
+    if (paymentMethod === 'paypal' && paypalOrderId) {
+      const checkoutOrders = await getCollection<NewsPayPalCheckoutOrder>(
+        'news_paypal_checkout_orders'
+      );
+      const checkoutOrder = await checkoutOrders.findOne({ paypalOrderId });
+
+      if (checkoutOrder) {
+        const recordedAmount = Number(checkoutOrder.amount);
+        const matchesSubmission =
+          checkoutOrder.status === 'captured' &&
+          checkoutOrder.currency === 'USD' &&
+          checkoutOrder.type === type &&
+          checkoutOrder.plan === plan &&
+          checkoutOrder.tier === `${type}_${plan}` &&
+          (checkoutOrder.promoCode ?? '') === promoCode &&
+          Number.isFinite(recordedAmount) &&
+          recordedAmount.toFixed(2) === submissionAmount.toFixed(2);
+
+        paymentVerification = matchesSubmission
+          ? {
+              verified: true,
+              providerDetails: {
+                paypalOrderId,
+                status: 'COMPLETED',
+                paymentSource: 'paypal_checkout',
+              },
+            }
+          : {
+              verified: false,
+              reason: 'The captured PayPal order does not match this News Hub submission.',
+            };
+      } else {
+        paymentVerification = await verifyNewsPayment({
+          paymentMethod,
+          paymentId: paypalOrderId,
+          txHash: normalizedTxHash,
+          amount: submissionAmount,
+          paymentStatus,
+        });
+      }
+    } else {
+      paymentVerification = await verifyNewsPayment({
+        paymentMethod,
+        paymentId: paymentId || null,
+        txHash: normalizedTxHash,
+        amount: submissionAmount,
+        paymentStatus,
+      });
+    }
 
     if (!paymentVerification.verified) {
       return NextResponse.json(

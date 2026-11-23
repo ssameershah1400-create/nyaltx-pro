@@ -616,7 +616,7 @@ export default function SubmitNewsModalCorporate({
     setModalStep(2);
   };
 
-  const saveNewsCryptoDraft = (paymentId?: string) => {
+  const saveNewsPaymentDraft = (paymentId?: string) => {
     const draft: NewsPayPalCryptoDraft = {
       subType,
       plan,
@@ -1559,20 +1559,12 @@ export default function SubmitNewsModalCorporate({
                       }}
                       cardOnly={payMethod === 'card'}
                       sandboxMode={plan === 'test'}
-                      onBeforeCryptoRedirect={() => saveNewsCryptoDraft()}
+                      onBeforeCryptoRedirect={() => saveNewsPaymentDraft()}
                       onSuccess={(details: any) => {
-                        const isCryptoPayment =
-                          details?.paymentSource === 'paypal_crypto' ||
-                          details?.payment_source?.crypto;
-                        if (isCryptoPayment) {
-                          try {
-                            saveNewsCryptoDraft(details.id);
-                          } catch (error) {
-                            console.error(
-                              'Could not save the verified PayPal crypto payment:',
-                              error
-                            );
-                          }
+                        try {
+                          saveNewsPaymentDraft(details.id);
+                        } catch (error) {
+                          console.error('Could not save the verified News Hub payment:', error);
                         }
                         setPendingPaypalPaymentId(details.id);
                         return handlePayAndSubmit({
